@@ -8,11 +8,18 @@ from offensive_nn.util.print_stat import print_information
 
 import numpy as np
 
+#local paths in pycharm
+# olid_train = pd.read_csv('../../data/olid/olid-data_sub_task_a.tsv', sep="\t")
+# olid_test = pd.read_csv('../../data/olid/testset-levela.tsv', sep="\t")
+# olid_test_labels = pd.read_csv('../../data/olid/labels-levela.csv', names=['index', 'labels'])
+
 olid_train = pd.read_csv('data/olid/olid-data_sub_task_a.tsv', sep="\t")
 olid_test = pd.read_csv('data/olid/testset-levela.tsv', sep="\t")
+olid_test_labels = pd.read_csv('data/olid/labels-levela.csv', names=['index', 'labels'])
 
 olid_train = olid_train[['text', 'labels']]
 olid_test = olid_test.rename(columns={'tweet': 'text'})
+olid_test['labels'] = olid_test_labels['labels']
 
 olid_train['labels'] = encode(olid_train["labels"])
 test_sentences = olid_test['text'].tolist()
