@@ -1,3 +1,4 @@
+import argparse
 import os
 import shutil
 import time
@@ -26,6 +27,12 @@ data = data[['text', 'labels']]
 
 train, test = train_test_split(data, test_size=0.2)
 
+parser = argparse.ArgumentParser(
+        description='''evaluates different level of offensive spans ''')
+parser.add_argument('--level', required=True, help='level')
+parser.add_argument('--train', required=True, help='level')
+args = parser.parse_args()
+level = int(args.level)
 
 if LANGUAGE_FINETUNE:
     train_list = train['text'].tolist()
@@ -56,6 +63,8 @@ test['labels'] = encode(test["labels"])
 test_sentences = test['text'].tolist()
 test_preds = np.zeros((len(test), args["n_fold"]))
 
+args["save_eval_checkpoints"]=False
+args["save_model_every_epoch"]=False
 if args["evaluate_during_training"]:
     for i in range(args["n_fold"]):
         if os.path.exists(args['output_dir']) and os.path.isdir(args['output_dir']):
