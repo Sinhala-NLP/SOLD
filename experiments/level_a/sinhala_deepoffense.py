@@ -28,9 +28,9 @@ data = data[['text', 'labels']]
 train, test = train_test_split(data, test_size=0.2)
 
 parser = argparse.ArgumentParser(
-        description='''evaluates different level of offensive spans ''')
-parser.add_argument('--level', required=True, help='level')
-parser.add_argument('--train', required=True, help='level')
+    description='''evaluates different level of offensive spans ''')
+parser.add_argument('--save_eval_checkpoints', required=False, help='save_eval_checkpoints')
+parser.add_argument('--save_model_every_epoch', required=False, help='save_model_every_epoch')
 args = parser.parse_args()
 level = int(args.level)
 
@@ -38,8 +38,8 @@ if LANGUAGE_FINETUNE:
     train_list = train['text'].tolist()
     test_list = test['text'].tolist()
     complete_list = train_list + test_list
-    lm_train = complete_list[0: int(len(complete_list)*0.8)]
-    lm_test = complete_list[-int(len(complete_list)*0.2):]
+    lm_train = complete_list[0: int(len(complete_list) * 0.8)]
+    lm_test = complete_list[-int(len(complete_list) * 0.2):]
 
     with open(os.path.join(TEMP_DIRECTORY, "lm_train.txt"), 'w') as f:
         for item in lm_train:
@@ -50,9 +50,9 @@ if LANGUAGE_FINETUNE:
             f.write("%s\n" % item)
 
     model = LanguageModelingModel(MODEL_TYPE, MODEL_NAME, args=language_modeling_args)
-    model.train_model(os.path.join(TEMP_DIRECTORY, "lm_train.txt"), eval_file=os.path.join(TEMP_DIRECTORY, "lm_test.txt"))
+    model.train_model(os.path.join(TEMP_DIRECTORY, "lm_train.txt"),
+                      eval_file=os.path.join(TEMP_DIRECTORY, "lm_test.txt"))
     MODEL_NAME = language_modeling_args["best_model_dir"]
-
 
 # Train the model
 print("Started Training")
@@ -63,8 +63,6 @@ test['labels'] = encode(test["labels"])
 test_sentences = test['text'].tolist()
 test_preds = np.zeros((len(test), args["n_fold"]))
 
-args["save_eval_checkpoints"]=False
-args["save_model_every_epoch"]=False
 if args["evaluate_during_training"]:
     for i in range(args["n_fold"]):
         if os.path.exists(args['output_dir']) and os.path.isdir(args['output_dir']):
@@ -73,7 +71,8 @@ if args["evaluate_during_training"]:
         model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=args, num_labels=3,
                                     use_cuda=torch.cuda.is_available())  # You can set class weights by using the optional weight argument
         train_df, eval_df = train_test_split(train, test_size=0.1, random_state=SEED * i)
-        model.train_model(train_df, eval_df=eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
+        model.train_model(train_df, eval_df=eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1,
+                          accuracy=sklearn.metrics.accuracy_score)
         model = ClassificationModel(MODEL_TYPE, args["best_model_dir"], args=args,
                                     use_cuda=torch.cuda.is_available())
 
@@ -99,5 +98,4 @@ test['labels'] = decode(test['labels'])
 time.sleep(5)
 
 print_information_multi_class(test, "predictions", "labels")
-test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE),  header=True, sep='\t', index=False, encoding='utf-8')
-
+test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
