@@ -27,8 +27,6 @@ data = data[['text', 'labels']]
 
 train, test = train_test_split(data, test_size=0.2)
 
-
-
 if LANGUAGE_FINETUNE:
     train_list = train['text'].tolist()
     test_list = test['text'].tolist()
@@ -63,9 +61,10 @@ parser = argparse.ArgumentParser(
         description='''evaluates multiple models  ''')
 parser.add_argument('--model_name', required=False, help='model name', default="xlm-roberta-large")
 parser.add_argument('--model_type', required=False, help='model type', default="xlmroberta")
-args = parser.parse_args()
-MODEL_NAME = args.model_name
-MODEL_TYPE = args.model_type
+arguments = parser.parse_args()
+
+MODEL_NAME = arguments.model_name
+MODEL_TYPE = arguments.model_type
 
 if args["evaluate_during_training"]:
     for i in range(args["n_fold"]):
