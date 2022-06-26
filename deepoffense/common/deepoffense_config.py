@@ -36,8 +36,8 @@ args = {
     'do_lower_case': False,
     'n_fold': 3,
 
-    'logging_steps': 60,
-    'save_steps': 250,
+    'logging_steps': 500,
+    'save_steps': 500,
     "no_cache": False,
     "no_save": False,
     "save_recent_only": True,
@@ -100,8 +100,8 @@ language_modeling_args = {
     'max_grad_norm': 1.0,
     'do_lower_case': False,
 
-    'logging_steps': 80,
-    'save_steps': 250,
+    'logging_steps': 500,
+    'save_steps': 500,
     "no_cache": False,
     "no_save": False,
     "save_recent_only": True,
