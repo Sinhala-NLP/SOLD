@@ -21,7 +21,15 @@ if not os.path.exists(TEMP_DIRECTORY): os.makedirs(TEMP_DIRECTORY)
 if not os.path.exists(os.path.join(TEMP_DIRECTORY, SUBMISSION_FOLDER)): os.makedirs(
     os.path.join(TEMP_DIRECTORY, SUBMISSION_FOLDER))
 
-data = pd.read_csv('data/olid/olid-training-v1.0.tsv', sep="\t")
+parser = argparse.ArgumentParser(
+    description='''evaluates multiple models  ''')
+parser.add_argument('--model_name', required=False, help='model name', default="xlm-roberta-large")
+parser.add_argument('--model_type', required=False, help='model type', default="xlmroberta")
+parser.add_argument('--cuda_device', required=False, help='cuda device', default=1)
+parser.add_argument('--train', required=False, help='train file', default='data/olid/olid-training-v1.0.tsv')
+arguments = parser.parse_args()
+
+data = pd.read_csv(arguments.train, sep="\t")
 data = data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
 data = data[['text', 'labels']]
 
@@ -56,12 +64,7 @@ test['labels'] = encode(test["labels"])
 test_sentences = test['text'].tolist()
 test_preds = np.zeros((len(test), args["n_fold"]))
 
-parser = argparse.ArgumentParser(
-    description='''evaluates multiple models  ''')
-parser.add_argument('--model_name', required=False, help='model name', default="xlm-roberta-large")
-parser.add_argument('--model_type', required=False, help='model type', default="xlmroberta")
-parser.add_argument('--cuda_device', required=False, help='cuda device', default=1)
-arguments = parser.parse_args()
+
 
 MODEL_NAME = arguments.model_name
 MODEL_TYPE = arguments.model_type
@@ -94,7 +97,7 @@ if args["evaluate_during_training"]:
     test['predictions'] = final_predictions
 else:
     model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=args, num_labels=3,
-                                use_cuda=torch.cuda.is_available())
+                                use_cuda=torch.cuda.is_available(), cuda_device=cuda_device)
     model.train_model(train, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
     predictions, raw_outputs = model.predict(test_sentences)
     print(raw_outputs)
