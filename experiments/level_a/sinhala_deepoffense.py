@@ -83,6 +83,7 @@ if args["evaluate_during_training"]:
         #                             use_cuda=torch.cuda.is_available())
 
         predictions, raw_outputs = model.predict(test_sentences)
+        print(predictions,raw_outputs)
         test_preds[:, i] = predictions
         print("Completed Fold {}".format(i))
     # select majority class of each instance (row)
