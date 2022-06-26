@@ -36,6 +36,7 @@ for i in range(args["n_fold"]):
     predictions, raw_outputs = model.predict(test_sentences)
     test_preds[:, i] = predictions
     print("Completed Fold {}".format(i))
+model.save_model()
 
 final_predictions = []
 for row in test_preds:
