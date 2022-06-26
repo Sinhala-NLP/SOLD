@@ -97,6 +97,7 @@ else:
                                 use_cuda=torch.cuda.is_available())
     model.train_model(train, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
     predictions, raw_outputs = model.predict(test_sentences)
+    print(raw_outputs)
     test['predictions'] = predictions
 
 model.save_model()
