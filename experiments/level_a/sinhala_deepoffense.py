@@ -27,13 +27,6 @@ data = data[['text', 'labels']]
 
 train, test = train_test_split(data, test_size=0.2)
 
-parser = argparse.ArgumentParser(
-    description='''evaluates different level of offensive spans ''')
-parser.add_argument('--save_eval_checkpoints', required=False, help='save_eval_checkpoints')
-parser.add_argument('--save_model_every_epoch', required=False, help='save_model_every_epoch')
-args = parser.parse_args()
-level = int(args.level)
-
 if LANGUAGE_FINETUNE:
     train_list = train['text'].tolist()
     test_list = test['text'].tolist()
