@@ -93,7 +93,7 @@ if args["evaluate_during_training"]:
     test['predictions'] = final_predictions
 else:
     model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=args, num_labels=3,
-                                use_cuda=torch.cuda.is_available())
+                                use_cuda=torch.cuda.is_available(), cuda_device=cuda_device)
     model.train_model(train, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
     predictions, raw_outputs = model.predict(test_sentences)
     test['predictions'] = predictions
