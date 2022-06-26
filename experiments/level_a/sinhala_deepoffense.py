@@ -72,6 +72,7 @@ if args["evaluate_during_training"]:
         if os.path.exists(args['output_dir']) and os.path.isdir(args['output_dir']):
             shutil.rmtree(args['output_dir'])
         print("Started Fold {}".format(i))
+        torch.cuda.set_device(cuda_device)
         model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=args, num_labels=3,
                                     use_cuda=torch.cuda.is_available(),
                                     cuda_device=cuda_device)  # You can set class weights by using the optional weight argument
