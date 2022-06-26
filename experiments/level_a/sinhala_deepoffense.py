@@ -95,6 +95,8 @@ else:
     predictions, raw_outputs = model.predict(test_sentences)
     test['predictions'] = predictions
 
+model.save_model()
+
 test['predictions'] = decode(test['predictions'])
 test['labels'] = decode(test['labels'])
 
