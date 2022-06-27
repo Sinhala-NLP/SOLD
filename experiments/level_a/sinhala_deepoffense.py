@@ -101,7 +101,7 @@ else:
     model.train_model(train, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
     predictions, raw_outputs = model.predict(test_sentences)
     print(raw_outputs)
-    confidence_df=pd.DataFrame(raw_outputs,columns=['label1', 'label2', 'label3'])
+    confidence_df=pd.DataFrame(raw_outputs)
     confidence_df.to_csv('confidence_result.csv')
     test['predictions'] = predictions
 
