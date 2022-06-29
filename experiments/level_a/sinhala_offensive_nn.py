@@ -64,5 +64,6 @@ for row in test_preds:
 
 olid_test['predictions'] = final_predictions
 olid_test['predictions'] = decode(olid_test['predictions'])
+olid_test['labels'] = decode(olid_test['labels'])
 
 print_information(olid_test, "predictions", "labels")
