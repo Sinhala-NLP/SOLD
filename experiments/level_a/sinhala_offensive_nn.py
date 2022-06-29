@@ -33,7 +33,7 @@ if arguments.lang == "en":
     olid_train['labels'] = encode(olid_train["labels"])
     test_sentences = olid_test['text'].tolist()
 elif arguments.lang == "sin":
-    sold_file = pd.read_csv('data/sold_trial.tsv', sep="\t")
+    sold_file = pd.read_csv('../../data/sold_trial.tsv', sep="\t")
     sold_file = sold_file.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
 
     train, test = train_test_split(sold_file, test_size=0.1, random_state=777)
@@ -41,9 +41,6 @@ elif arguments.lang == "sin":
     olid_train['labels'] = encode(olid_train['labels'])
     olid_test = test[['text', 'labels']]
     olid_test['labels'] = encode(olid_test['labels'])
-
-    olid_train.info()
-    olid_test.info()
 
     test_sentences = olid_test['text'].tolist()
 
@@ -65,6 +62,7 @@ for row in test_preds:
     row = row.tolist()
     final_predictions.append(int(max(set(row), key=row.count)))
 
-olid_test['predictions'] = decode(final_predictions)
+olid_test['predictions'] = final_predictions
+olid_test['predictions'] = decode(olid_test['predictions'])
 
 print_information(olid_test, "predictions", "labels")
