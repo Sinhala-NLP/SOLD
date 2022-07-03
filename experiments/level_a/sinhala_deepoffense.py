@@ -64,7 +64,7 @@ if LANGUAGE_FINETUNE:
 # Train the model
 print("Started Training")
 
-# train['labels'] = encode(train["labels"])
+train['labels'] = encode(train["labels"])
 # test['labels'] = encode(test["labels"])
 
 test_sentences = test['text'].tolist()
