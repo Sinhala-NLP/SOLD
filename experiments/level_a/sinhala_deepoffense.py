@@ -118,5 +118,6 @@ test['predictions'] = decode(test['predictions'])
 
 # time.sleep(5)
 
-print_information_multi_class(test, "predictions", "labels")
+# print_information_multi_class(test, "predictions", "labels")
+print_information_multi_class(test, "predictions")
 test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
