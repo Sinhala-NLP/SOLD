@@ -23,9 +23,9 @@ args = {
     'fp16': False,
     'fp16_opt_level': 'O1',
     'max_seq_length': 128,  # 128
-    'train_batch_size': 8,
+    'train_batch_size': 32,
     'gradient_accumulation_steps': 1,
-    'eval_batch_size': 8,
+    'eval_batch_size': 32,
     'num_train_epochs': 1,
     'weight_decay': 0,
     'learning_rate': 1e-5,
