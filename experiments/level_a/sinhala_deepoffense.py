@@ -65,7 +65,7 @@ if LANGUAGE_FINETUNE:
 print("Started Training")
 
 train['labels'] = encode(train["labels"])
-# test['labels'] = encode(test["labels"])
+test['labels'] = encode(test["labels"])
 
 test_sentences = test['text'].tolist()
 test_preds = np.zeros((len(test), args["n_fold"]))
