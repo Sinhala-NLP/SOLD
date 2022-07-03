@@ -27,13 +27,19 @@ parser.add_argument('--model_name', required=False, help='model name', default="
 parser.add_argument('--model_type', required=False, help='model type', default="xlmroberta")
 parser.add_argument('--cuda_device', required=False, help='cuda device', default=1)
 parser.add_argument('--train', required=False, help='train file', default='data/olid/olid-training-v1.0.tsv')
+parser.add_argument('--test', required=False, help='test file', default='data/olid/olid-training-v1.0.tsv')
 arguments = parser.parse_args()
 
 data = pd.read_csv(arguments.train, sep="\t")
 data = data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
-data = data[['text', 'labels']]
+train = data[['text', 'labels']]
 
-train, test = train_test_split(data, test_size=0.2)
+# train, test = train_test_split(data, test_size=0.2)
+test= pd.read_csv(arguments.test, sep=",")
+
+# data = data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
+# train = data[['text', 'labels']]
+
 
 if LANGUAGE_FINETUNE:
     train_list = train['text'].tolist()
@@ -58,8 +64,8 @@ if LANGUAGE_FINETUNE:
 # Train the model
 print("Started Training")
 
-train['labels'] = encode(train["labels"])
-test['labels'] = encode(test["labels"])
+# train['labels'] = encode(train["labels"])
+# test['labels'] = encode(test["labels"])
 
 test_sentences = test['text'].tolist()
 test_preds = np.zeros((len(test), args["n_fold"]))
@@ -108,7 +114,7 @@ else:
 model.save_model()
 
 test['predictions'] = decode(test['predictions'])
-test['labels'] = decode(test['labels'])
+# test['labels'] = decode(test['labels'])
 
 # time.sleep(5)
 
