@@ -14,12 +14,8 @@ parser = argparse.ArgumentParser(
     description='''evaluates multiple models  ''')
 parser.add_argument('--model_name', required=False, help='model name', default="word2vec-google-news-300")
 parser.add_argument('--lang', required=False, help='language', default="en")  # en or sin
+parser.add_argument('--algorithm', required=False, help='algorithm', default="cnn2D")  # lstm or cnn2D
 arguments = parser.parse_args()
-
-# local paths in pycharm
-# olid_train = pd.read_csv('../../data/olid/olid-data_sub_task_a.tsv', sep="\t")
-# olid_test = pd.read_csv('../../data/olid/testset-levela.tsv', sep="\t")
-# olid_test_labels = pd.read_csv('../../data/olid/labels-levela.csv', names=['index', 'labels'])
 
 if arguments.lang == "en":
     olid_train = pd.read_csv('data/olid/olid-data_sub_task_a.tsv', sep="\t")
@@ -48,7 +44,7 @@ test_preds = np.zeros((len(olid_test), args["n_fold"]))
 
 for i in range(args["n_fold"]):
     olid_train, olid_validation = train_test_split(olid_train, test_size=0.2, random_state=args["manual_seed"])
-    model = OffensiveNNModel(model_type_or_path="cnn2D", embedding_model_name=arguments.model_name, train_df=olid_train,
+    model = OffensiveNNModel(model_type_or_path=arguments.algorithm, embedding_model_name=arguments.model_name, train_df=olid_train,
                              args=args, eval_df=olid_validation)
     model.train_model()
     print("Finished Training")
