@@ -108,12 +108,16 @@ else:
     predictions, raw_outputs = model.predict(test_sentences)
     print(raw_outputs)
     confidence_df=pd.DataFrame(raw_outputs)
+    predictions_df = pd.DataFrame(predictions)
+    predictions_df.to_csv('prediction_result.csv')
     confidence_df.to_csv('confidence_result.csv')
+
     test['predictions'] = predictions
 
 model.save_model()
 
 test['predictions'] = decode(test['predictions'])
+test.to_csv()
 # test['labels'] = decode(test['labels'])
 
 # time.sleep(5)
