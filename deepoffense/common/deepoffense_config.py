@@ -73,7 +73,9 @@ args = {
 
     "manual_seed": SEED,
 
-    "config": {},
+    "config": {
+        "output_attentions": True
+    },
     "local_rank": -1,
     "encoding": None,
 
