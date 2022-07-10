@@ -34,11 +34,11 @@ data = pd.read_csv(arguments.train, sep="\t")
 data = data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
 train = data[['text', 'labels']]
 
-# train, test = train_test_split(data, test_size=0.2)
-test= pd.read_csv(arguments.test, sep=",")
+train, test = train_test_split(data, test_size=0.2)
+# c
+# test= pd.read_csv(arguments.test, sep=",")
 
-# data = data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
-# train = data[['text', 'labels']]
+
 
 
 if LANGUAGE_FINETUNE:
@@ -65,7 +65,8 @@ if LANGUAGE_FINETUNE:
 print("Started Training")
 
 train['labels'] = encode(train["labels"])
-# test['labels'] = encode(test["labels"])
+# c
+test['labels'] = encode(test["labels"])
 
 test_sentences = test['text'].tolist()
 test_preds = np.zeros((len(test), args["n_fold"]))
@@ -109,8 +110,13 @@ else:
     print(raw_outputs)
     confidence_df=pd.DataFrame(raw_outputs)
     test['preds'] = predictions
-    predictions_df = pd.merge(test, test[['preds']], how='left', left_index=True, right_index=True)
-    predictions_df.to_csv('prediction_result.csv')
+    # predictions_df = pd.DataFrame.from_dict({'y_test': test, 'predictions': predictions}).to_csv(
+    #     'prediction.csv')
+
+
+    # need to add
+    # predictions_df = pd.merge(test, test[['preds']], how='left', left_index=True, right_index=True)
+    # predictions_df.to_csv('prediction_result.csv')
     confidence_df.to_csv('confidence_result.csv')
 
     test['predictions'] = predictions
@@ -119,10 +125,15 @@ model.save_model()
 
 test['predictions'] = decode(test['predictions'])
 test.to_csv()
-# test['labels'] = decode(test['labels'])
+# c
+test['labels'] = decode(test['labels'])
 
 # time.sleep(5)
 
-# print_information_multi_class(test, "predictions", "labels")
-# print_information_multi_class(test, "predictions")
+# c
+print_information_multi_class(test, "predictions", "labels")
+print_information_multi_class(test, "predictions")
+
 test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
+
+# def calculate_std():
