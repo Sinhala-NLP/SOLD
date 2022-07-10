@@ -1963,6 +1963,7 @@ class ClassificationModel:
                 "soft_rationale_predictions": attention,
                 # "soft_sentence_predictions":[1.0],
                 "truth": ground_truth}]
+                
             list_dict.append(temp)
 
         #TODO: Return with dataset
