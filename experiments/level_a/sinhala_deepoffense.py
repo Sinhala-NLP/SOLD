@@ -110,8 +110,7 @@ else:
     print(raw_outputs)
     confidence_df=pd.DataFrame(raw_outputs)
     test['preds'] = predictions
-    # predictions_df = pd.DataFrame.from_dict({'y_test': test, 'predictions': predictions}).to_csv(
-    #     'prediction.csv')
+    predictions_df = pd.DataFrame.from_dict({'y_test': test, 'predictions': predictions}).to_csv('prediction.csv')
 
 
     # need to add
@@ -132,8 +131,17 @@ test['labels'] = decode(test['labels'])
 
 # c
 print_information_multi_class(test, "predictions", "labels")
+
+
+
 # print_information_multi_class(test, "predictions")
 
 test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
 
-# def calculate_std():
+def calculate_std(acc):
+    label1 = np.std(confidence_df['1'])
+    label2 = np.std(confidence_df['2'])
+    label3 = np.std(confidence_df['3'])
+
+
+

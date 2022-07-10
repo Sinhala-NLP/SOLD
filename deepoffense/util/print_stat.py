@@ -42,3 +42,4 @@ def print_information_multi_class(df, pred_column, real_column):
     print("Weighter F1 Score {}".format(f1_score(real_values, predictions, average='weighted')))
 
     print("Macro F1 Score {}".format(f1_score(real_values, predictions, average='macro')))
+    return accuracy_score(real_values, predictions)
