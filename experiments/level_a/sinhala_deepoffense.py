@@ -110,12 +110,15 @@ else:
     print(raw_outputs)
     confidence_df=pd.DataFrame(raw_outputs)
     test['preds'] = predictions
-    predictions_df = pd.DataFrame.from_dict({'y_test': test, 'predictions': predictions}).to_csv('prediction.csv')
+    predictions_df = pd.merge(test, test[['preds']], how='left', left_index=True, right_index=True)
+    # predictions_df = pd.DataFrame.from_dict({'y_test': test, 'predictions': predictions}).to_csv('prediction.csv')
 
 
     # need to add
     # predictions_df = pd.merge(test, test[['preds']], how='left', left_index=True, right_index=True)
     # predictions_df.to_csv('prediction_result.csv')
+    predictions_df.to_csv('prediction.csv')
+
     confidence_df.to_csv('confidence_result.csv')
 
     test['predictions'] = predictions
