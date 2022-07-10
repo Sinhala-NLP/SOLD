@@ -108,7 +108,8 @@ else:
     predictions, raw_outputs = model.predict(test_sentences)
     print(raw_outputs)
     confidence_df=pd.DataFrame(raw_outputs)
-    predictions_df = pd.merge(test, test[['predictions']], how='left', left_index=True, right_index=True)
+    test['preds'] = predictions
+    predictions_df = pd.merge(test, test[['preds']], how='left', left_index=True, right_index=True)
     predictions_df.to_csv('prediction_result.csv')
     confidence_df.to_csv('confidence_result.csv')
 
