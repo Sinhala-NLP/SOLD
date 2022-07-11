@@ -33,10 +33,13 @@ arguments = parser.parse_args()
 data = pd.read_csv(arguments.train, sep="\t")
 data = data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
 train = data[['text', 'labels']]
+# load new csv
+# new_df=pd.read_csv('data/new_train.csv')
+# df['labels'] = df['labels'].map({0.0:'OFF',1.0:'NOT OFF'})
 
-train, test = train_test_split(data, test_size=0.2)
+# train, test = train_test_split(data, test_size=0.2)
 # c
-# test= pd.read_csv(arguments.test, sep=",")
+test= pd.read_csv(arguments.test, sep=",")
 
 
 
@@ -112,8 +115,6 @@ else:
     test['preds'] = predictions
     predictions_df = pd.merge(test, test[['preds']], how='left', left_index=True, right_index=True)
     # predictions_df = pd.DataFrame.from_dict({'y_test': test, 'predictions': predictions}).to_csv('prediction.csv')
-
-
     # need to add
     # predictions_df = pd.merge(test, test[['preds']], how='left', left_index=True, right_index=True)
     # predictions_df.to_csv('prediction_result.csv')
@@ -126,14 +127,13 @@ else:
 model.save_model()
 
 test['predictions'] = decode(test['predictions'])
-test.to_csv()
 # c
-test['labels'] = decode(test['labels'])
+# test['labels'] = decode(test['labels'])
 
 # time.sleep(5)
 
 # c
-print_information_multi_class(test, "predictions", "labels")
+# print_information_multi_class(test, "predictions", "labels")
 
 
 
