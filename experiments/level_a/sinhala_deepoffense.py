@@ -37,9 +37,9 @@ train = data[['text', 'labels']]
 # new_df=pd.read_csv('data/new_train.csv')
 # df['labels'] = df['labels'].map({0.0:'OFF',1.0:'NOT OFF'})
 
-# train, test = train_test_split(data, test_size=0.2)
+train, test = train_test_split(data, test_size=0.2)
 # c
-test= pd.read_csv(arguments.test, sep=",")
+# test= pd.read_csv(arguments.test, sep=",")
 
 
 
@@ -128,23 +128,20 @@ model.save_model()
 
 test['predictions'] = decode(test['predictions'])
 # c
-# test['labels'] = decode(test['labels'])
+test['labels'] = decode(test['labels'])
 
 # time.sleep(5)
 
 # c
-# print_information_multi_class(test, "predictions", "labels")
+print_information_multi_class(test, "predictions", "labels")
 
 
 
-# print_information_multi_class(test, "predictions")
+print_information_multi_class(test, "predictions")
 
 test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
 
-def calculate_std(acc):
-    label1 = np.std(confidence_df['1'])
-    label2 = np.std(confidence_df['2'])
-    label3 = np.std(confidence_df['3'])
+
 
 
 
