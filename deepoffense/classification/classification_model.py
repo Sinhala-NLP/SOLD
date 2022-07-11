@@ -58,6 +58,8 @@ from transformers.optimization import (
     get_polynomial_decay_schedule_with_warmup,
 )
 
+from torch.nn import Softmax
+
 from deepoffense.classification.classification_utils import LazyClassificationDataset, InputExample, \
     convert_examples_to_features, sweep_config_to_sweep_values
 from deepoffense.classification.transformer_models.albert_model import AlbertForSequenceClassification
@@ -71,6 +73,7 @@ from deepoffense.classification.transformer_models.xlm_model import XLMForSequen
 from deepoffense.classification.transformer_models.xlm_roberta_model import XLMRobertaForSequenceClassification
 from deepoffense.classification.transformer_models.xlnet_model import XLNetForSequenceClassification
 from deepoffense.custom_models.models import ElectraForSequenceClassification
+from deepoffense.util.label_converter import decode, encode
 
 try:
     import wandb
@@ -654,9 +657,6 @@ class ClassificationModel:
                 mininterval=0,
             )
 
-            del (train_dataloader)
-            gc.collect()
-
             for step, batch in enumerate(batch_iterator):
                 if steps_trained_in_current_epoch > 0:
                     steps_trained_in_current_epoch -= 1
@@ -921,6 +921,9 @@ class ClassificationModel:
 
                 del results
                 gc.collect()
+
+        del (train_dataloader)
+        gc.collect()
 
         return (
             global_step,
@@ -1690,6 +1693,16 @@ class ClassificationModel:
     def get_named_parameters(self):
         return [n for n, p in self.model.named_parameters()]
 
+    def softmax(self,x):
+        """Compute softmax values for each sets of scores in x."""
+        e_x = np.exp(x - np.max(x))
+        temp=e_x / e_x.sum(axis=0) # only difference
+        
+        if np.isnan(temp).any()==True:
+            return [0.0,1.0,0.0]
+        else:
+            return temp
+                
     def standaloneEval_with_rational(self, to_predict, multi_label=False):
         """
         Performs predictions on a list of text.
@@ -1927,7 +1940,7 @@ class ClassificationModel:
 
         logits_all_final = []
         for logits in model_outputs:
-            logits_all_final.append(softmax(logits))
+            logits_all_final.append(self.softmax(logits))
 
         attention_vector_final = []
         for x, y in zip(attention_all, input_mask_all):
@@ -1944,7 +1957,6 @@ class ClassificationModel:
             #         if(ground_truth==1):
             #             continue
             temp = {}
-            encoder = LabelEncoder()
             pred_label = decode([pred])[0]
             ground_label = decode([ground_truth])[0]
             temp["classification"] = pred_label
@@ -1968,3 +1980,6 @@ class ClassificationModel:
 
         #TODO: Return with dataset
         return list_dict
+
+        
+

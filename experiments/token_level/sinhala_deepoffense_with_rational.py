@@ -25,28 +25,7 @@ data = pd.read_csv('data/olid/olid-training-v1.0.tsv', sep="\t")
 data = data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
 data = data[['text', 'labels']]
 
-train, test = train_test_split(data, test_size=0.2)
-
-
-if LANGUAGE_FINETUNE:
-    train_list = train['text'].tolist()
-    test_list = test['text'].tolist()
-    complete_list = train_list + test_list
-    lm_train = complete_list[0: int(len(complete_list)*0.8)]
-    lm_test = complete_list[-int(len(complete_list)*0.2):]
-
-    with open(os.path.join(TEMP_DIRECTORY, "lm_train.txt"), 'w') as f:
-        for item in lm_train:
-            f.write("%s\n" % item)
-
-    with open(os.path.join(TEMP_DIRECTORY, "lm_test.txt"), 'w') as f:
-        for item in lm_test:
-            f.write("%s\n" % item)
-
-    model = LanguageModelingModel(MODEL_TYPE, MODEL_NAME, args=language_modeling_args)
-    model.train_model(os.path.join(TEMP_DIRECTORY, "lm_train.txt"), eval_file=os.path.join(TEMP_DIRECTORY, "lm_test.txt"))
-    MODEL_NAME = language_modeling_args["best_model_dir"]
-
+train, test = train_test_split(data[:100], test_size=0.2)
 
 # Train the model
 print("Started Training")
@@ -66,9 +45,6 @@ if args["evaluate_during_training"]:
                                     use_cuda=torch.cuda.is_available())  # You can set class weights by using the optional weight argument
         train_df, eval_df = train_test_split(train, test_size=0.1, random_state=SEED * i)
         model.train_model(train_df, eval_df=eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
-        model = ClassificationModel(MODEL_TYPE, args["best_model_dir"], args=args,
-                                    use_cuda=torch.cuda.is_available())
-
         predictions, raw_outputs = model.predict(test_sentences)
         test_preds[:, i] = predictions
         print("Completed Fold {}".format(i))
@@ -97,11 +73,7 @@ test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE),  header=True, sep='\t', i
 #TODO: Parameterize (1) train and test with rationals (2) test with rationals
 gc.collect()
 
-model = ClassificationModel(MODEL_TYPE, args["best_model_dir"], args=args, use_cuda=torch.cuda.is_available())
+#TODO: Add separate condition to load and rational only
+# model = ClassificationModel(MODEL_TYPE, args["best_model_dir"], args=args, use_cuda=torch.cuda.is_available())
 
 list_dict = model.standaloneEval_with_rational(test_sentences)
-
-
-
-
-
