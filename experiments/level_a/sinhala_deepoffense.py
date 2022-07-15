@@ -31,11 +31,13 @@ parser.add_argument('--test', required=False, help='test file', default='data/ol
 arguments = parser.parse_args()
 
 data = pd.read_csv(arguments.train, sep="\t")
-data = data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
-train = data[['text', 'labels']]
-
+# data = data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
+# train = data[['text', 'labels']]
 if (arguments.test is None):
+    data = data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
+    train = data[['text', 'labels']]
     train, test = train_test_split(data, test_size=0.2)
+
     if LANGUAGE_FINETUNE:
         train_list = train['text'].tolist()
         test_list = test['text'].tolist()
