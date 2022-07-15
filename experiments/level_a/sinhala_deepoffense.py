@@ -227,10 +227,13 @@ else:
 
         if (full < l1/2):
             new.append(df.loc[ix]['1'])
-        elif (full2 < l2/2):
+            print(new1)
+        if (full2 < l2/2):
             new1.append(df.loc[ix]['2'])
-        elif (full3 < l3/2):
+            print(new1)
+        if (full3 < l3/2):
             new2.append(df.loc[ix]['3'])
+            print(new2)
 
         df_new = result.iloc[np.where(result['1'].isin(new))]
         df_new2 = result.iloc[np.where(result['2'].isin(new1))]
@@ -241,17 +244,17 @@ else:
         new_dataframe.rename({'text': 'tweet', 'preds_y': 'subtask_a'}, axis=1, inplace=True)
         new_dataframe.to_csv('new_train.csv')
 
-    model.save_model()
+        model.save_model()
 
-    test['predictions'] = decode(test['predictions'])
+        # test['predictions'] = decode(test['predictions'])
 
-    # time.sleep(5)
-    test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
+        # time.sleep(5)
+        test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
 
-    df_nw=pd.read_csv(arguments.train, sep="\t")
-    df_merged = df_nw.append(new_dataframe, ignore_index=True)
-    # how to replace this to same argument?????
-    df_merged.to_csv('/content/SOLD/data/new_sold.tsv', sep="\t")
+        df_nw=pd.read_csv(arguments.train, sep="\t")
+        df_merged = df_nw.append(new_dataframe, ignore_index=True)
+        # how to replace this to same argument?????
+        df_merged.to_csv('/content/SOLD/data/new_sold.tsv', sep="\t")
 
 
-    df_merged
+    # df_merged
