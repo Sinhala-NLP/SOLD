@@ -34,12 +34,7 @@ data = pd.read_csv(arguments.train, sep="\t")
 data = data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
 train = data[['text', 'labels']]
 
-if not arguments.test:
-
-    # load new csv
-    # new_df=pd.read_csv('data/new_train.csv')
-    # df['labels'] = df['labels'].map({0.0:'OFF',1.0:'NOT OFF'})
-
+if (arguments.test is None):
     train, test = train_test_split(data, test_size=0.2)
     if LANGUAGE_FINETUNE:
         train_list = train['text'].tolist()
