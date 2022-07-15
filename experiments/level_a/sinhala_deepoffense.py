@@ -126,7 +126,7 @@ if (arguments.test is None):
     test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
 
 else:
-
+    data = data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
     train = data[['text', 'labels']]
     test= pd.read_csv(arguments.test, sep=",")
 
