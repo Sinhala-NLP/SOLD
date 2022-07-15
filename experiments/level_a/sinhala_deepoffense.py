@@ -27,7 +27,7 @@ parser.add_argument('--model_name', required=False, help='model name', default="
 parser.add_argument('--model_type', required=False, help='model type', default="xlmroberta")
 parser.add_argument('--cuda_device', required=False, help='cuda device', default=1)
 parser.add_argument('--train', required=False, help='train file', default='data/olid/olid-training-v1.0.tsv')
-parser.add_argument('--test', required=False, help='test file', default='data/olid/olid-training-v1.0.tsv')
+parser.add_argument('--test', required=False, help='test file')
 arguments = parser.parse_args()
 
 data = pd.read_csv(arguments.train, sep="\t")
@@ -128,7 +128,7 @@ if (arguments.test is None):
 
     test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
 
-else :
+else:
 
     train = data[['text', 'labels']]
     test= pd.read_csv(arguments.test, sep=",")
