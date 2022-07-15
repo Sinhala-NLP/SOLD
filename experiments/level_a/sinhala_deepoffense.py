@@ -119,7 +119,7 @@ if (arguments.test is None):
 
     test['predictions'] = decode(test['predictions'])
     # c
-    test['labels'] = decode(test['labels'])
+    # test['labels'] = decode(test['labels'])
 
     # time.sleep(5)
     print_information_multi_class(test, "predictions", "labels")
