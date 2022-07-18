@@ -258,7 +258,7 @@ else:
         arguments.train = 'data/new_sold.tsv'
 
 
-        new ='python -m experiments.level_a.sinhala_deepoffense --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train'
+        new ='python -m sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train'
         exec (new)
 
         # parser = argparse.ArgumentParser(
