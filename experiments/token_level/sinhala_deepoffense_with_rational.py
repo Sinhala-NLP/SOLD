@@ -21,9 +21,9 @@ if not os.path.exists(TEMP_DIRECTORY): os.makedirs(TEMP_DIRECTORY)
 if not os.path.exists(os.path.join(TEMP_DIRECTORY, SUBMISSION_FOLDER)): os.makedirs(
     os.path.join(TEMP_DIRECTORY, SUBMISSION_FOLDER))
 
-data = pd.read_csv('data/olid/olid-training-v1.0.tsv', sep="\t")
-data = data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
-data = data[['text', 'labels']]
+data = pd.read_csv('/content/SOLD/data/sold_trial.tsv', sep="\t")
+data = data.rename(columns={'tweet': 'text', 'subtask_a': 'labels', 'id': 'post_id'})
+data = data[['text', 'labels', 'post_id']]
 
 train, test = train_test_split(data[:100], test_size=0.2)
 
@@ -76,4 +76,4 @@ gc.collect()
 #TODO: Add separate condition to load and rational only
 # model = ClassificationModel(MODEL_TYPE, args["best_model_dir"], args=args, use_cuda=torch.cuda.is_available())
 
-list_dict = model.standaloneEval_with_rational(test_sentences)
+list_dict, test_data = model.standaloneEval_with_rational(test_sentences, test_data = test)

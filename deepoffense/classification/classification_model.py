@@ -1703,7 +1703,7 @@ class ClassificationModel:
         else:
             return temp
                 
-    def standaloneEval_with_rational(self, to_predict, multi_label=False):
+    def standaloneEval_with_rational(self, to_predict, multi_label=False, test_data=None,extra_data_path=None, topk=2,use_ext_df=False):
         """
         Performs predictions on a list of text.
 
@@ -1718,6 +1718,8 @@ class ClassificationModel:
         #TODO: Remove unwanted snippets
         #TODO: Optimize
         #TODO: Parameterize
+
+        # to_predict = to_predict['text']
 
         model = self.model
         args = self.args
@@ -1793,6 +1795,7 @@ class ClassificationModel:
 
             eval_sampler = SequentialSampler(eval_dataset)
             eval_dataloader = DataLoader(eval_dataset, sampler=eval_sampler, batch_size=args.eval_batch_size)
+            post_id_all=list(test_data['post_id'])
 
             if self.args.fp16:
                 from torch.cuda import amp
@@ -1845,7 +1848,6 @@ class ClassificationModel:
                         )
             else:
                 n_batches = len(eval_dataloader)
-                post_id_all = []  # list(eval_dataloader['id'])
                 true_labels = []
                 pred_labels = []
                 logits_all = []
@@ -1855,6 +1857,10 @@ class ClassificationModel:
                     model.eval()
                     # batch = tuple(t.to(device) for t in batch)
 
+                    # Put the model in evaluation mode--the dropout layers behave differently
+                    # during evaluation.
+                    # Tracking variables
+                    
                     with torch.no_grad():
                         inputs = self._get_inputs_dict(batch)
 
@@ -1885,7 +1891,7 @@ class ClassificationModel:
                     label_ids = inputs["labels"].detach().cpu().numpy()
 
                     pred_labels[start_index:end_index] = np.argmax(logits, axis=1).flatten()
-                    true_labels[start_index:end_index] = label_ids.flatten()
+                    true_labels[start_index:end_index] = label_ids.flatten() #TODO: fix
 
                     attention_all[start_index:end_index] = np.mean(attention[11][:, :, 0, :].detach().cpu().numpy(),
                                                                    axis=1)
@@ -1952,17 +1958,18 @@ class ClassificationModel:
 
         list_dict = []
 
-        for attention, logits, pred, ground_truth in zip(attention_vector_final, logits_all_final, pred_labels,
+        for post_id, attention, logits, pred, ground_truth in zip(post_id_all, attention_vector_final, logits_all_final, pred_labels,
                                                          true_labels):
             #         if(ground_truth==1):
             #             continue
             temp = {}
-            pred_label = decode([pred])[0]
+            pred_label = decode([pred])[0] #TODO: Incorrect decode, fix
             ground_label = decode([ground_truth])[0]
+            temp["annotation_id"]=post_id
             temp["classification"] = pred_label
             temp["classification_scores"] = {"hatespeech": logits[0], "normal": logits[1], "offensive": logits[2]}
 
-            topk = 5
+            topk = 5 #TODO: Add param
             topk_indicies = sorted(range(len(attention)), key=lambda i: attention[i])[-topk:]
 
             temp_hard_rationales = []
@@ -1970,7 +1977,7 @@ class ClassificationModel:
                 temp_hard_rationales.append({'end_token': ind + 1, 'start_token': ind})
 
             temp["rationales"] = [{
-                # "docid": post_id, #TODO: add later
+                "docid": post_id,
                 "hard_rationale_predictions": temp_hard_rationales,
                 "soft_rationale_predictions": attention,
                 # "soft_sentence_predictions":[1.0],
@@ -1979,7 +1986,7 @@ class ClassificationModel:
             list_dict.append(temp)
 
         #TODO: Return with dataset
-        return list_dict
+        return list_dict, test_data
 
         
 
