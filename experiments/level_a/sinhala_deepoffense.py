@@ -133,11 +133,11 @@ if (arguments.test is None):
     # run your program and collect the string output
     # cmd = "python ../../sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train"
     # out_str = subprocess.call(cmd, shell=True)
-    cm1 = "../../"
-    # arguments.train = 'data/new_sold.tsv'
-    out_str1 = subprocess.call(cm1, shell=True)
-    cmd = "python -m experiments.level_a.sinhala_deepoffense --model_name="+arguments.model_name+" --model_type="+arguments.model_type+" --cuda_device="+arguments.cuda_device+" --train="+arguments.train+""
-    out_str = subprocess.call(cmd, shell=True)
+    # cm1 = "../../"
+    # # arguments.train = 'data/new_sold.tsv'
+    # out_str1 = subprocess.call(cm1, shell=True)
+    # cmd = "python -m experiments.level_a.sinhala_deepoffense --model_name="+arguments.model_name+" --model_type="+arguments.model_type+" --cuda_device="+arguments.cuda_device+" --train="+arguments.train+""
+    # out_str = subprocess.call(cmd, shell=True)
 
 else:
     data = data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
@@ -269,7 +269,7 @@ else:
         df_merged = df_nw.append(new_dataframe, ignore_index=True)
         # how to replace this to same argument?????
         df_merged.to_csv('/content/SOLD/data/new_sold.tsv', sep="\t")
-        arguments.train = 'data/new_sold.tsv'
+        arguments.train = '/content/SOLD/data/new_sold.tsv'
 
 
         # new ='python sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train'
@@ -283,7 +283,10 @@ else:
         import subprocess
 
         # run your program and collect the string output
-        cmd = "python experiments/level_a/sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train"
+        cm1 = "../../"
+        # arguments.train = 'data/new_sold.tsv'
+        out_str1 = subprocess.call(cm1, shell=True)
+        cmd = "python -m experiments.level_a.sinhala_deepoffense --model_name=" + arguments.model_name + " --model_type=" + arguments.model_type + " --cuda_device=" + arguments.cuda_device + " --train=" + arguments.train + ""
         out_str = subprocess.call(cmd, shell=True)
 
 
