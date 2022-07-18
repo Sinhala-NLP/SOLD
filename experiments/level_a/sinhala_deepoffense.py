@@ -134,8 +134,9 @@ if (arguments.test is None):
     # cmd = "python ../../sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train"
     # out_str = subprocess.call(cmd, shell=True)
     cm1 = "../../"
+    arguments.train = 'data/new_sold.tsv'
     out_str1 = subprocess.call(cm1, shell=True)
-    cmd = "python -m experiments.level_a.sinhala_deepoffense --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train"
+    cmd = "python -m experiments.level_a.sinhala_deepoffense --model_name="+arguments.model_name+" --model_type="+arguments.model_type+" --cuda_device="+arguments.cuda_device+"--train="+arguments.train+""
     out_str = subprocess.call(cmd, shell=True)
 
 else:
