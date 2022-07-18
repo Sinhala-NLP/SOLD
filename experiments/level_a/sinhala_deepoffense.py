@@ -239,15 +239,23 @@ else:
         l2 = np.std(df['2'])
         l3 = np.std(df['3'])
 
+        print(l1)
+        print(l2)
+        print(l3)
+
+        print(m1)
+        print(m2)
+        print(m3)
+
         if (full < l1/2):
             new.append(df.loc[ix]['1'])
             print(new1)
-            if (full2 < l2/2):
-                new1.append(df.loc[ix]['2'])
-                print(new1)
-                if (full3 < l3/2):
-                    new2.append(df.loc[ix]['3'])
-                    print(new2)
+        if (full2 < l2/2):
+            new1.append(df.loc[ix]['2'])
+            print(new1)
+        if (full3 < l3/2):
+            new2.append(df.loc[ix]['3'])
+            print(new2)
 
         df_new = result.iloc[np.where(result['1'].isin(new))]
         df_new2 = result.iloc[np.where(result['2'].isin(new1))]
