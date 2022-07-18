@@ -1,4 +1,5 @@
 import argparse
+import gc
 import os
 import shutil
 import time
@@ -277,6 +278,7 @@ else:
         df_merged = df_nw.append(new_dataframe, ignore_index=True)
         # how to replace this to same argument?????
         df_merged.to_csv('data/new_sold.tsv', sep="\t")
+        del df_merged,model
         arguments.train = 'data/new_sold.tsv'
 
         # new ='python sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train'
@@ -286,6 +288,8 @@ else:
 
         # import subprocess
         # subprocess.call('python sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train')
+
+        gc.collect()
 
         import subprocess
 
