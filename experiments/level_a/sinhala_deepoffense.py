@@ -88,7 +88,7 @@ if (arguments.test is None):
             #                             use_cuda=torch.cuda.is_available())
 
             predictions, raw_outputs = model.predict(test_sentences)
-            print(predictions,raw_outputs)
+            print(predictions, raw_outputs)
             test_preds[:, i] = predictions
             print("Completed Fold {}".format(i))
         # select majority class of each instance (row)
@@ -103,7 +103,7 @@ if (arguments.test is None):
         model.train_model(train, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
         predictions, raw_outputs = model.predict(test_sentences)
         print(raw_outputs)
-        confidence_df=pd.DataFrame(raw_outputs)
+        confidence_df = pd.DataFrame(raw_outputs)
         test['preds'] = predictions
         predictions_df = pd.merge(test, test[['preds']], how='left', left_index=True, right_index=True)
         # predictions_df = pd.DataFrame.from_dict({'y_test': test, 'predictions': predictions}).to_csv('prediction.csv')
@@ -142,7 +142,7 @@ if (arguments.test is None):
 else:
     data = data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
     train = data[['text', 'labels']]
-    test= pd.read_csv(arguments.test, sep=",")
+    test = pd.read_csv(arguments.test, sep=",")
 
     if LANGUAGE_FINETUNE:
         train_list = train['text'].tolist()
@@ -223,9 +223,9 @@ else:
         new1 = []
         new2 = []
 
-        m1=np.mean(df['1'])
-        m2=np.mean(df['2'])
-        m3=np.mean(df['3'])
+        m1 = np.mean(df['1'])
+        m2 = np.mean(df['2'])
+        m3 = np.mean(df['3'])
 
         for ix in df.index:
             e = df.loc[ix]['1']
@@ -247,13 +247,13 @@ else:
         print(m2)
         print(m3)
 
-        if (full < l1/2):
+        if (full < l1 / 2):
             new.append(df.loc[ix]['1'])
             print(new1)
-        if (full2 < l2/2):
+        if (full2 < l2 / 2):
             new1.append(df.loc[ix]['2'])
             print(new1)
-        if (full3 < l3/2):
+        if (full3 < l3 / 2):
             new2.append(df.loc[ix]['3'])
             print(new2)
 
@@ -273,12 +273,11 @@ else:
         # time.sleep(5)
         test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
 
-        df_nw=pd.read_csv(arguments.train, sep="\t")
+        df_nw = pd.read_csv(arguments.train, sep="\t")
         df_merged = df_nw.append(new_dataframe, ignore_index=True)
         # how to replace this to same argument?????
         df_merged.to_csv('data/new_sold.tsv', sep="\t")
         arguments.train = 'data/new_sold.tsv'
-
 
         # new ='python sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train'
         # exec (new)
@@ -294,9 +293,8 @@ else:
         cm1 = "../../"
         # arguments.train = 'data/new_sold.tsv'
         out_str1 = subprocess.call(cm1, shell=True)
-        cmd = "python -m experiments.level_a.sinhala_deepoffense --model_name=" + arguments.model_name + " --model_type=" + arguments.model_type + " --cuda_device=" + arguments.cuda_device + " --train=" + arguments.train + ""
+        cmd = "python -m experiments.level_a.sinhala_deepoffense --model_name=" + arguments.model_name + " --model_type=" + arguments.model_type + " --train=" + arguments.train + ""
         out_str = subprocess.call(cmd, shell=True)
-
 
         # parser = argparse.ArgumentParser(
         #     description='''evaluates multiple models  ''')
