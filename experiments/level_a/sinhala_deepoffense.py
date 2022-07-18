@@ -273,7 +273,7 @@ else:
         import subprocess
 
         # run your program and collect the string output
-        cmd = "python experiments.level_a.sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train"
+        cmd = "python experiments/level_a/sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train"
         out_str = subprocess.call(cmd, shell=True)
 
 
