@@ -255,10 +255,10 @@ else:
         df_merged = df_nw.append(new_dataframe, ignore_index=True)
         # how to replace this to same argument?????
         df_merged.to_csv('/content/SOLD/data/new_sold.tsv', sep="\t")
-        arguments.test = 'data/new_sold.tsv'
+        arguments.train = 'data/new_sold.tsv'
 
 
-        new ='python -m experiments.level_a.sinhala_deepoffense --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.test'
+        new ='python -m experiments.level_a.sinhala_deepoffense --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train'
         exec (new)
 
         # parser = argparse.ArgumentParser(
