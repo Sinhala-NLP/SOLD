@@ -247,14 +247,13 @@ else:
         print(m2)
         print(m3)
 
-        if (full < 0.546325):
+        if (full < l1/4):
             new.append(df.loc[ix]['1'])
             print(new1)
-        if (full2 < 0.561713665):
+        if (full2 < l2/4):
             new1.append(df.loc[ix]['2'])
             print(new1)
-        x = -1.276446663
-        if (full3 < x ):
+        if (full3 < l3/4):
             new2.append(df.loc[ix]['3'])
             print(new2)
 
