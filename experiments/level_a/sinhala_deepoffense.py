@@ -255,6 +255,19 @@ else:
         df_merged = df_nw.append(new_dataframe, ignore_index=True)
         # how to replace this to same argument?????
         df_merged.to_csv('/content/SOLD/data/new_sold.tsv', sep="\t")
+        arguments.test = 'data/new_sold.tsv'
 
+
+        new ='python -m experiments.level_a.sinhala_deepoffense --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.test'
+        exec (new)
+
+        # parser = argparse.ArgumentParser(
+        #     description='''evaluates multiple models  ''')
+        # parser.add_argument('--model_name', required=False, help='model name', default="xlm-roberta-large")
+        # parser.add_argument('--model_type', required=False, help='model type', default="xlmroberta")
+        # parser.add_argument('--cuda_device', required=False, help='cuda device', default=1)
+        # parser.add_argument('--train', required=False, help='train file', default='data/olid/olid-training-v1.0.tsv')
+        # parser.add_argument('--test', required=False, help='test file')
+        # arguments = parser.parse_args()
 
     # df_merged
