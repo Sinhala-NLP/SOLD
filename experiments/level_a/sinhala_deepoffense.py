@@ -125,6 +125,10 @@ if (arguments.test is None):
     print_information_multi_class(test, "predictions", "labels")
     test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
 
+    # new = 'python sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train'
+    # exec(new)
+
+
 else:
     data = data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
     train = data[['text', 'labels']]
@@ -258,8 +262,10 @@ else:
         arguments.train = 'data/new_sold.tsv'
 
 
-        new ='python -m sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train'
-        exec (new)
+        # new ='python sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train'
+        # exec (new)
+        print('----excecuted-----')
+        os.system('python sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train')
 
         # parser = argparse.ArgumentParser(
         #     description='''evaluates multiple models  ''')
