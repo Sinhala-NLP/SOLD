@@ -268,8 +268,8 @@ else:
         df_nw=pd.read_csv(arguments.train, sep="\t")
         df_merged = df_nw.append(new_dataframe, ignore_index=True)
         # how to replace this to same argument?????
-        df_merged.to_csv('/content/SOLD/data/new_sold.tsv', sep="\t")
-        arguments.train = '/content/SOLD/data/new_sold.tsv'
+        df_merged.to_csv('data/new_sold.tsv', sep="\t")
+        arguments.train = 'data/new_sold.tsv'
 
 
         # new ='python sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train'
