@@ -264,8 +264,18 @@ else:
 
         # new ='python sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train'
         # exec (new)
-        print('----excecuted-----')
-        os.system('python sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train')
+        # print('----excecuted-----')
+        # os.system('python sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train')
+
+        # import subprocess
+        # subprocess.call('python sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train')
+
+        import subprocess
+
+        # run your program and collect the string output
+        cmd = "python sinhala_deepoffense.py -o --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train'"
+        out_str = subprocess.call(cmd, shell=True)
+
 
         # parser = argparse.ArgumentParser(
         #     description='''evaluates multiple models  ''')
