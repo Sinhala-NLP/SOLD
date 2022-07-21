@@ -234,19 +234,18 @@ else:
 
         for ix in df.index:
             e = df.loc[ix]['1']
-            f = df.loc[ix]['2']
-            g = df.loc[ix]['3']
             full = e - m1
+            f = df.loc[ix]['2']
             full2 = f - m2
+            g = df.loc[ix]['3']
             full3 = g - m3
-
             if (full < l1 / 2):
                 new.append(df.loc[ix]['1'])
-                print(new1)
-            if (full2 < l2 / 2):
+                print(new)
+            elif (full2 < l2 / 2):
                 new1.append(df.loc[ix]['2'])
                 print(new1)
-            if (full3 < l3 / 2):
+            elif (full3 < l3 / 2):
                 new2.append(df.loc[ix]['3'])
                 print(new2)
 
