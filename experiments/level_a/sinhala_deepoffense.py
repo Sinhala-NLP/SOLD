@@ -291,14 +291,14 @@ else:
 
         gc.collect()
 
-        import subprocess
-
-        # run your program and collect the string output
-        cm1 = "../../"
-        # arguments.train = 'data/new_sold.tsv'
-        out_str1 = subprocess.call(cm1, shell=True)
-        cmd = "python -m experiments.level_a.sinhala_deepoffense --model_name=" + arguments.model_name + " --model_type=" + arguments.model_type + " --train=" + arguments.train + ""
-        out_str = subprocess.call(cmd, shell=True)
+        # import subprocess
+        #
+        # # run your program and collect the string output
+        # cm1 = "../../"
+        # # arguments.train = 'data/new_sold.tsv'
+        # out_str1 = subprocess.call(cm1, shell=True)
+        # cmd = "python -m experiments.level_a.sinhala_deepoffense --model_name=" + arguments.model_name + " --model_type=" + arguments.model_type + " --train=" + arguments.train + ""
+        # out_str = subprocess.call(cmd, shell=True)
 
         # parser = argparse.ArgumentParser(
         #     description='''evaluates multiple models  ''')
