@@ -257,8 +257,6 @@ else:
         # print(m2)
         # print(m3)
 
-
-
         df_new = result.iloc[np.where(result['1'].isin(new))]
         df_new2 = result.iloc[np.where(result['2'].isin(new1))]
         df_new3 = result.iloc[np.where(result['3'].isin(new2))]
