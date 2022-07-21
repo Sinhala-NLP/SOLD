@@ -206,7 +206,7 @@ else:
                                     use_cuda=torch.cuda.is_available(), cuda_device=cuda_device)
         model.train_model(train, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
         predictions, raw_outputs = model.predict(test_sentences)
-        print(raw_outputs)
+        # print(raw_outputs)
         confidence_df = pd.DataFrame(raw_outputs)
         test['preds'] = predictions
         predictions_df = pd.merge(test, test[['preds']], how='left', left_index=True, right_index=True)
@@ -241,13 +241,13 @@ else:
             full3 = g - m3
             if (full < l1 / 2):
                 new.append(df.loc[ix]['1'])
-                print(new)
+                # print(new)
             elif (full2 < l2 / 2):
                 new1.append(df.loc[ix]['2'])
-                print(new1)
+                # print(new1)
             elif (full3 < l3 / 2):
                 new2.append(df.loc[ix]['3'])
-                print(new2)
+                # print(new2)
 
         # print(l1)
         # print(l2)
