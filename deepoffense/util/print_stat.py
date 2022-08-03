@@ -36,10 +36,13 @@ def print_information_multi_class(df, pred_column, real_column):
     #     print("F1 Score {}".format(f1_score(real_values, predictions, labels=labels, pos_label=label, average='weighted')))
 
     print()
-    print("Accuracy {}".format(accuracy_score(real_values, predictions)))
-    print("Weighted Recall {}".format(recall_score(real_values, predictions, average='weighted')))
-    print("Weighted Precision {}".format(precision_score(real_values, predictions, average='weighted')))
-    print("Weighter F1 Score {}".format(f1_score(real_values, predictions, average='weighted')))
+    with open('outputresults.txt', 'a') as f:
 
-    print("Macro F1 Score {}".format(f1_score(real_values, predictions, average='macro')))
-    return accuracy_score(real_values, predictions)
+        print("Accuracy {}".format(accuracy_score(real_values, predictions)),file=f)
+        print("Weighted Recall {}".format(recall_score(real_values, predictions, average='weighted')), file=f)
+        print("Weighted Precision {}".format(precision_score(real_values, predictions, average='weighted')),file=f)
+        print("Weighter F1 Score {}".format(f1_score(real_values, predictions, average='weighted')),file=f)
+
+        print("Macro F1 Score {}".format(f1_score(real_values, predictions, average='macro')),file=f)
+
+    # return accuracy_score(real_values, predictions)
