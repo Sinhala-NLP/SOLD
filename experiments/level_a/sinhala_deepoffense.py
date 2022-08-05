@@ -243,10 +243,10 @@ else:
             if (full < l1 / 3):
                 new.append(df.loc[ix]['1'])
                 # print(new)
-            elif (full2 < l2 / 3):
+            if (full2 < l2 / 3):
                 new1.append(df.loc[ix]['2'])
                 # print(new1)
-            elif (full3 < l3 / 3):
+            if (full3 < l3 / 3):
                 new2.append(df.loc[ix]['3'])
                 # print(new2)
 
