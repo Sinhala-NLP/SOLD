@@ -212,7 +212,7 @@ else:
         test['preds'] = predictions
         predictions_df = pd.merge(test, test[['preds']], how='left', left_index=True, right_index=True)
         predictions_df.to_csv('prediction.csv')
-        confidence_df.to_csv('confidence_result.csv')
+        confidence_df.to_csv('confidence_result1.csv')
         test['predictions'] = predictions
 
         df1 = pd.read_csv('prediction.csv')
