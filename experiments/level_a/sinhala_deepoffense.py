@@ -229,9 +229,13 @@ else:
         m2 = np.mean(df['2'])
         m3 = np.mean(df['3'])
 
+        print(m1,m2,m3)
+
         l1 = np.std(df['1'])
         l2 = np.std(df['2'])
         l3 = np.std(df['3'])
+
+        print(l1,l2,l3)
 
         for ix in df.index:
             e = df.loc[ix]['1']
@@ -240,13 +244,13 @@ else:
             full2 = f - m2
             g = df.loc[ix]['3']
             full3 = g - m3
-            if (full < l1 / 0.5):
+            if (full < l1 / 2.5):
                 new.append(df.loc[ix]['1'])
                 # print(new)
-            if (full2 > l2 / 0.5):
+            if (full2 < l2 / 2.5):
                 new1.append(df.loc[ix]['2'])
                 # print(new1)
-            if (full3 > l3 / 0.5):
+            if (full3 < l3 / 2.5):
                 new2.append(df.loc[ix]['3'])
                 # print(new2)
 
