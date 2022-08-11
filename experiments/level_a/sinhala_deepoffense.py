@@ -254,6 +254,8 @@ else:
                 new2.append(df.loc[ix]['3'])
                 # print(new2)
 
+
+
         # print(l1)
         # print(l2)
         # print(l3)
