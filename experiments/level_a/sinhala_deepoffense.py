@@ -237,6 +237,12 @@ else:
 
         print(l1,l2,l3)
 
+        st1 = l1 / 2.0
+        st2 = l2 / 2.0
+        st3 = l3 / 2.0
+
+        print(st1, st2, st3)
+
         for ix in df.index:
             e = df.loc[ix]['1']
             full = e - m1
@@ -245,19 +251,14 @@ else:
             g = df.loc[ix]['3']
             full3 = g - m3
 
-            st1=l1/2.0
-            st2=l2/2.0
-            st3=l3/2.0
 
-            print(st1,st2,st3)
-
-            if (full > (l1 / 2.0)):
+            if (full > st1):
                 new.append(df.loc[ix]['1'])
                 # print(new)
-            if (full2 > (l2 / 2.0)):
+            if (full2 > st2):
                 new1.append(df.loc[ix]['2'])
                 # print(new1)
-            if (full3 > (l3 / 2.0)):
+            if (full3 > st3):
                 new2.append(df.loc[ix]['3'])
                 # print(new2)
 
