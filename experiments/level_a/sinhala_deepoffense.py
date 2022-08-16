@@ -255,9 +255,9 @@ else:
             if (full > st1):
                 new.append(df.loc[ix]['1'])
                 # print(new)
-            # if (full2 > st2):
-            #     new1.append(df.loc[ix]['2'])
-            #     # print(new1)
+            if (full2 > st2):
+                new1.append(df.loc[ix]['2'])
+                # print(new1)
             # if (full3 > st3):
             #     new2.append(df.loc[ix]['3'])
                 # print(new2)
@@ -274,8 +274,9 @@ else:
 
         df_new = result.iloc[np.where(result['1'].isin(new))]
         df_new2 = result.iloc[np.where(result['2'].isin(new1))]
-        df_new3 = result.iloc[np.where(result['3'].isin(new2))]
-        new_dataframe = pd.concat([df_new, df_new2, df_new3]).drop_duplicates()
+        # df_new3 = result.iloc[np.where(result['3'].isin(new2))]
+        # new_dataframe = pd.concat([df_new, df_new2, df_new3]).drop_duplicates()
+        new_dataframe = pd.concat([df_new,df_new2]).drop_duplicates()
         new_dataframe = new_dataframe.filter(['id', 'text', 'preds_y'])
         new_dataframe['preds_y'] = new_dataframe['preds_y'].map({0.0: 'NOT', 1.0: 'OFF'})
         new_dataframe.rename({'text': 'tweet', 'preds_y': 'subtask_a'}, axis=1, inplace=True)
