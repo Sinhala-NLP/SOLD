@@ -244,13 +244,13 @@ else:
             full2 = f - m2
             g = df.loc[ix]['3']
             full3 = g - m3
-            if (full < (l1 / 2.5)):
+            if (full > (l1 / 2.0)):
                 new.append(df.loc[ix]['1'])
                 # print(new)
-            if (full2 < (l2 / 2.5)):
+            if (full2 > (l2 / 2.0)):
                 new1.append(df.loc[ix]['2'])
                 # print(new1)
-            if (full3 < (l3 / 2.5)):
+            if (full3 > (l3 / 2.0)):
                 new2.append(df.loc[ix]['3'])
                 # print(new2)
 
