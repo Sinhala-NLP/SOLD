@@ -252,13 +252,13 @@ else:
             full3 = g - m3
 
 
-            if (full > st1):
+            if (full < st1):
                 new.append(df.loc[ix]['1'])
                 # print(new)
-            if (full2 > st2):
+            if (full2 < st2):
                 new1.append(df.loc[ix]['2'])
                 # print(new1)
-            if (full3 > st3):
+            if (full3 < st3):
                 new2.append(df.loc[ix]['3'])
                 # print(new2)
 
