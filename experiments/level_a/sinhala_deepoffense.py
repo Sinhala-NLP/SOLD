@@ -255,11 +255,11 @@ else:
             if (full > st1):
                 new.append(df.loc[ix]['1'])
                 # print(new)
-            if (full2 > st2):
-                new1.append(df.loc[ix]['2'])
-                # print(new1)
-            if (full3 > st3):
-                new2.append(df.loc[ix]['3'])
+            # if (full2 > st2):
+            #     new1.append(df.loc[ix]['2'])
+            #     # print(new1)
+            # if (full3 > st3):
+            #     new2.append(df.loc[ix]['3'])
                 # print(new2)
 
 
