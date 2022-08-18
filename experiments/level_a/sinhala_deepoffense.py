@@ -237,9 +237,11 @@ else:
 
         print(l1,l2,l3)
 
-        st1 = l1 / 2.5
-        st2 = l2 / 2.5
-        st3 = l3 / 2.5
+        # 2.5, 2.0, 1,5
+
+        st1 = l1 / 1.5
+        st2 = l2 / 1.5
+        st3 = l3 / 1.5
 
         print(st1, st2, st3)
 
