@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 class OffensiveNNModel:
     def __init__(self, model_type_or_path,
-                 embedding_model_name=None,
+                 embedding_model_name_or_path=None,
                  train_df=None,
                  eval_df=None,
                  args=None):
@@ -66,7 +66,10 @@ class OffensiveNNModel:
 
             self.args.max_features = len(self.word_index) + 1
 
-            self.embedding_model = api.load(embedding_model_name)
+            if os.path.isdir(embedding_model_name_or_path):
+                self.embedding_model = keras.models.load_model(model_type_or_path)
+            else:
+                self.embedding_model = api.load(embedding_model_name_or_path)
             self.embedding_matrix = self.get_emb_matrix(self.word_index, self.args.max_features, self.embedding_model)
 
             MODEL_CLASSES = {
