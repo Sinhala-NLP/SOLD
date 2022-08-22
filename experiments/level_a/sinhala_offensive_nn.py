@@ -40,6 +40,18 @@ elif arguments.lang == "sin":
 
     test_sentences = olid_test['text'].tolist()
 
+elif arguments.lang == "hin":
+    sold_file = pd.read_csv('data/hasoc2019_hi_test_gold_2919.tsv', sep="\t")
+    sold_file = sold_file.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
+
+    train, test = train_test_split(sold_file, test_size=0.1, random_state=777)
+    olid_train = train[['text', 'labels']]
+    olid_train['labels'] = encode(olid_train['labels'])
+    olid_test = test[['text', 'labels']]
+    olid_test['labels'] = encode(olid_test['labels'])
+
+    test_sentences = olid_test['text'].tolist()
+
 test_preds = np.zeros((len(olid_test), args["n_fold"]))
 
 for i in range(args["n_fold"]):
