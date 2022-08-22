@@ -25,7 +25,7 @@ parser = argparse.ArgumentParser(
     description='''evaluates multiple models  ''')
 parser.add_argument('--model_name', required=False, help='model name', default="xlm-roberta-large")
 parser.add_argument('--model_type', required=False, help='model type', default="xlmroberta")
-parser.add_argument('--cuda_device', required=False, help='cuda device', default=1)
+parser.add_argument('--cuda_device', required=False, help='cuda device', default=0)
 parser.add_argument('--train', required=False, help='train file', default='data/olid/olid-training-v1.0.tsv')
 arguments = parser.parse_args()
 
