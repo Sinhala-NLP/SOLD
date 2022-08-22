@@ -41,7 +41,7 @@ elif arguments.lang == "sin":
     test_sentences = olid_test['text'].tolist()
 
 elif arguments.lang == "hin":
-    sold_file = pd.read_csv('data/hasoc2019_hi_test_gold_2919.tsv', sep="\t")
+    sold_file = pd.read_csv('data/hin-data_sub_task_a.tsv', sep="\t")
     sold_file = sold_file.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
 
     train, test = train_test_split(sold_file, test_size=0.1, random_state=777)
