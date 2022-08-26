@@ -15,6 +15,8 @@ parser = argparse.ArgumentParser(
 parser.add_argument('--model_name', required=False, help='model name', default="word2vec-google-news-300")
 parser.add_argument('--lang', required=False, help='language', default="en")  # en or sin
 parser.add_argument('--algorithm', required=False, help='algorithm', default="cnn2D")  # lstm or cnn2D
+parser.add_argument('--train', required=False, help='train file', default='data/olid/olid-training-v1.0.tsv')
+parser.add_argument('--test', required=False, help='test file')
 arguments = parser.parse_args()
 
 if arguments.lang == "en":
@@ -28,12 +30,14 @@ if arguments.lang == "en":
 
     olid_train['labels'] = encode(olid_train["labels"])
     test_sentences = olid_test['text'].tolist()
-elif arguments.lang == "sin":
-    sold_file = pd.read_csv('data/sold_trial.tsv', sep="\t")
-    sold_file = sold_file.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
 
-    train, test = train_test_split(sold_file, test_size=0.1, random_state=777)
-    olid_train = train[['text', 'labels']]
+elif arguments.lang == "sin":
+    sold_file = pd.read_csv(arguments.train, sep="\t")
+    sold_file = sold_file.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
+    olid_train = sold_file[['text', 'labels']]
+    # train, test = train_test_split(sold_file, test_size=0.1, random_state=777)
+    test = pd.read_csv(arguments.test, sep="\t")
+
     olid_train['labels'] = encode(olid_train['labels'])
     olid_test = test[['text', 'labels']]
     olid_test['labels'] = encode(olid_test['labels'])
