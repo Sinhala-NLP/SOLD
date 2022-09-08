@@ -144,7 +144,10 @@ if (arguments.test is None):
 else:
     data = data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
     train = data[['text', 'labels']]
-    test = pd.read_csv(arguments.test, sep="\t")
+
+    data = pd.read_csv(arguments.test, sep=",")
+    data = data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
+    test =data[['text', 'labels']]
 
     if LANGUAGE_FINETUNE:
         train_list = train['text'].tolist()
