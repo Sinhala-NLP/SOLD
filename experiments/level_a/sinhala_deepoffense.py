@@ -145,9 +145,9 @@ else:
     data = data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
     train = data[['text', 'labels']]
 
-    data = pd.read_csv(arguments.test, sep=",")
-    data = data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
-    test =data[['text', 'labels']]
+    data_new = pd.read_csv(arguments.test, sep=",")
+    data_new = data_new.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
+    test =data_new[['text', 'labels']]
 
     if LANGUAGE_FINETUNE:
         train_list = train['text'].tolist()
