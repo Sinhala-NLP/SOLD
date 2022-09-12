@@ -10,7 +10,7 @@ SUBMISSION_FOLDER = "transformers"
 SUBMISSION_FILE = "transformers"
 MODEL_TYPE = "xlmroberta"
 MODEL_NAME = "xlm-roberta-large"
-LANGUAGE_FINETUNE =False
+LANGUAGE_FINETUNE = False
 SEED = 777
 
 # training instances = 7000 > if batch size=8, batches = 875 > evaluate during training steps -> 80 or 175
@@ -19,13 +19,15 @@ args = {
     'output_dir': 'temp/outputs/',
     "best_model_dir": "temp/outputs/best_model",
     'cache_dir': 'temp/cache_dir/',
+    'save_best_model': True,
+    'evaluate_during_training': True,
 
     'fp16': False,
     'fp16_opt_level': 'O1',
     'max_seq_length': 128,  # 128
-    'train_batch_size': 8,
+    'train_batch_size': 32,
     'gradient_accumulation_steps': 1,
-    'eval_batch_size': 8,
+    'eval_batch_size': 32,
     'num_train_epochs': 3,
     'weight_decay': 0,
     'learning_rate': 1e-5,
@@ -78,7 +80,6 @@ args = {
     "encoding": None,
 
 }
-
 
 language_modeling_args = {
     'output_dir': 'temp/lm/outputs/',
