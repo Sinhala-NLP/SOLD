@@ -1,8 +1,7 @@
 import argparse
 import os
 import shutil
-import time
-import csv
+
 import numpy as np
 import pandas as pd
 import sklearn
@@ -10,12 +9,12 @@ import torch
 from sklearn.model_selection import train_test_split
 
 from deepoffense.classification import ClassificationModel
+from deepoffense.common.deepoffense_config import LANGUAGE_FINETUNE, TEMP_DIRECTORY, SUBMISSION_FOLDER, \
+    MODEL_TYPE, MODEL_NAME, language_modeling_args, args, SEED, RESULT_FILE
 from deepoffense.language_modeling.language_modeling_model import LanguageModelingModel
 from deepoffense.util.evaluation import macro_f1, weighted_f1
 from deepoffense.util.label_converter import decode, encode
-from deepoffense.common.deepoffense_config import LANGUAGE_FINETUNE, TEMP_DIRECTORY, SUBMISSION_FOLDER, \
-    MODEL_TYPE, MODEL_NAME, language_modeling_args, args, SEED, RESULT_FILE
-from deepoffense.util.print_stat import print_information, print_information_multi_class
+from deepoffense.util.print_stat import print_information_multi_class
 
 if not os.path.exists(TEMP_DIRECTORY): os.makedirs(TEMP_DIRECTORY)
 if not os.path.exists(os.path.join(TEMP_DIRECTORY, SUBMISSION_FOLDER)): os.makedirs(
@@ -26,14 +25,20 @@ parser = argparse.ArgumentParser(
 parser.add_argument('--model_name', required=False, help='model name', default="xlm-roberta-large")
 parser.add_argument('--model_type', required=False, help='model type', default="xlmroberta")
 parser.add_argument('--cuda_device', required=False, help='cuda device', default=0)
-parser.add_argument('--train', required=False, help='train file', default='data/olid/olid-training-v1.0.tsv')
+parser.add_argument('--train', required=False, help='train file', default='data/SOLD_train.tsv')
+parser.add_argument('--test', required=False, help='train file', default='data/SOLD_test.tsv')
 arguments = parser.parse_args()
 
-data = pd.read_csv(arguments.train, sep="\t")
-data = data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
-data = data[['text', 'labels']]
+# load training data
+trn_data = pd.read_csv(arguments.train, sep="\t")
+trn_data = trn_data.rename(columns={'content': 'text', 'Class': 'labels'})
+train = trn_data[['text', 'labels']]
 
-train, test = train_test_split(data, test_size=0.2)
+tst_data = pd.read_csv(arguments.train, sep="\t")
+tst_data = tst_data.rename(columns={'content': 'text', 'Class': 'labels'})
+test = tst_data[['text', 'labels']]
+
+# train, test = train_test_split(data, test_size=0.2)
 
 if LANGUAGE_FINETUNE:
     train_list = train['text'].tolist()
@@ -63,8 +68,6 @@ test['labels'] = encode(test["labels"])
 
 test_sentences = test['text'].tolist()
 test_preds = np.zeros((len(test), args["n_fold"]))
-
-
 
 MODEL_NAME = arguments.model_name
 MODEL_TYPE = arguments.model_type
