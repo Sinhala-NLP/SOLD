@@ -1,17 +1,14 @@
 import logging
+import os
 import random
 import shutil
 
-import gensim.utils
-import tensorflow as tf
-import gensim.downloader as api
-from gensim.models.word2vec import Word2VecVocab
-from tensorflow import keras
-
-import numpy as np
-import os
 import absl.logging
-
+import gensim.downloader as api
+import gensim.utils
+import numpy as np
+import tensorflow as tf
+from tensorflow import keras
 from tensorflow.python.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
 
 from offensive_nn.model_args import ModelArgs
@@ -203,7 +200,5 @@ class OffensiveNNModel:
 
         no_embedding_rate = no_embedding_count / (embedding_count + no_embedding_count)
         logger.warning("Embeddings are not found for {:.2f}% words.".format(no_embedding_rate * 100))
-
-        return embedding_matrix
 
         return embedding_matrix
