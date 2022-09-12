@@ -18,47 +18,49 @@ parser.add_argument('--algorithm', required=False, help='algorithm', default="cn
 arguments = parser.parse_args()
 
 if arguments.lang == "en":
-    olid_train = pd.read_csv('data/olid/olid-data_sub_task_a.tsv', sep="\t")
-    olid_test = pd.read_csv('data/olid/testset-levela.tsv', sep="\t")
+    train_set = pd.read_csv('data/olid/olid-data_sub_task_a.tsv', sep="\t")
+    test_set = pd.read_csv('data/olid/testset-levela.tsv', sep="\t")
     olid_test_labels = pd.read_csv('data/olid/labels-levela.csv', names=['index', 'labels'])
 
-    olid_train = olid_train[['text', 'labels']]
-    olid_test = olid_test.rename(columns={'tweet': 'text'})
-    olid_test['labels'] = encode(olid_test_labels['labels'])
+    train_set = train_set[['text', 'labels']]
+    test_set = test_set.rename(columns={'tweet': 'text'})
+    test_set['labels'] = encode(olid_test_labels['labels'])
 
-    olid_train['labels'] = encode(olid_train["labels"])
-    test_sentences = olid_test['text'].tolist()
+    train_set['labels'] = encode(train_set["labels"])
+
 elif arguments.lang == "sin":
-    sold_file = pd.read_csv('data/sold_trial.tsv', sep="\t")
-    sold_file = sold_file.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
+    sold_train_file = pd.read_csv('data/SOLD_train.tsv', sep="\t")
+    train = sold_train_file.rename(columns={'content': 'text', 'Class': 'labels'})
+    sold_test_file = pd.read_csv('data/SOLD_test.tsv', sep="\t")
+    test = sold_train_file.rename(columns={'content': 'text', 'Class': 'labels'})
 
-    train, test = train_test_split(sold_file, test_size=0.1, random_state=777)
-    olid_train = train[['text', 'labels']]
-    olid_train['labels'] = encode(olid_train['labels'])
-    olid_test = test[['text', 'labels']]
-    olid_test['labels'] = encode(olid_test['labels'])
+    # train, test = train_test_split(sold_train_file, test_size=0.1, random_state=777)
 
-    test_sentences = olid_test['text'].tolist()
+    train_set = train[['text', 'labels']]
+    train_set['labels'] = encode(train_set['labels'])
+    test_set = test[['text', 'labels']]
+    test_set['labels'] = encode(test_set['labels'])
+
 
 elif arguments.lang == "hin":
     sold_file = pd.read_csv('data/hin-data_sub_task_a.tsv', sep="\t")
     sold_file = sold_file.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
 
     train, test = train_test_split(sold_file, test_size=0.1, random_state=777)
-    olid_train = train[['text', 'labels']]
-    olid_train['labels'] = encode(olid_train['labels'])
-    olid_test = test[['text', 'labels']]
-    olid_test['labels'] = encode(olid_test['labels'])
+    train_set = train[['text', 'labels']]
+    train_set['labels'] = encode(train_set['labels'])
+    test_set = test[['text', 'labels']]
+    test_set['labels'] = encode(test_set['labels'])
 
-    test_sentences = olid_test['text'].tolist()
+test_sentences = test_set['text'].tolist()
 
-test_preds = np.zeros((len(olid_test), args["n_fold"]))
+test_preds = np.zeros((len(test_set), args["n_fold"]))
 
 for i in range(args["n_fold"]):
-    olid_train, olid_validation = train_test_split(olid_train, test_size=0.2, random_state=args["manual_seed"])
+    train_set, validation_set = train_test_split(train_set, test_size=0.2, random_state=args["manual_seed"])
     model = OffensiveNNModel(model_type_or_path=arguments.algorithm, embedding_model_name_or_path=arguments.model_name,
-                             train_df=olid_train,
-                             args=args, eval_df=olid_validation)
+                             train_df=train_set,
+                             args=args, eval_df=validation_set)
     model.train_model()
     print("Finished Training")
     model = OffensiveNNModel(model_type_or_path=args["best_model_dir"])
@@ -71,8 +73,8 @@ for row in test_preds:
     row = row.tolist()
     final_predictions.append(int(max(set(row), key=row.count)))
 
-olid_test['predictions'] = final_predictions
-olid_test['predictions'] = decode(olid_test['predictions'])
-olid_test['labels'] = decode(olid_test['labels'])
+test_set['predictions'] = final_predictions
+test_set['predictions'] = decode(test_set['predictions'])
+test_set['labels'] = decode(test_set['labels'])
 
-print_information(olid_test, "predictions", "labels")
+print_information(test_set, "predictions", "labels")

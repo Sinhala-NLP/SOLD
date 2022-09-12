@@ -85,8 +85,6 @@ if args["evaluate_during_training"]:
         train_df, eval_df = train_test_split(train, test_size=0.1, random_state=SEED * i)
         model.train_model(train_df, eval_df=eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1,
                           accuracy=sklearn.metrics.accuracy_score)
-        # model = ClassificationModel(MODEL_TYPE, args["best_model_dir"], args=args,
-        #                             use_cuda=torch.cuda.is_available())
 
         predictions, raw_outputs = model.predict(test_sentences)
         test_preds[:, i] = predictions
