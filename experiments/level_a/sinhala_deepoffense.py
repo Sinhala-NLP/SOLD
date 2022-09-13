@@ -14,7 +14,7 @@ from deepoffense.common.deepoffense_config import LANGUAGE_FINETUNE, TEMP_DIRECT
 from deepoffense.language_modeling.language_modeling_model import LanguageModelingModel
 from deepoffense.util.evaluation import macro_f1, weighted_f1
 from deepoffense.util.label_converter import decode, encode
-from deepoffense.util.print_stat import print_information_multi_class
+from deepoffense.util.print_stat import print_information
 
 if not os.path.exists(TEMP_DIRECTORY): os.makedirs(TEMP_DIRECTORY)
 if not os.path.exists(os.path.join(TEMP_DIRECTORY, SUBMISSION_FOLDER)): os.makedirs(
@@ -100,5 +100,5 @@ test['labels'] = decode(test['labels'])
 
 # time.sleep(5)
 
-print_information_multi_class(test, "predictions", "labels")
+print_information(test, "predictions", "labels")
 test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
