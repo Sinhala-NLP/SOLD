@@ -71,7 +71,7 @@ test_preds = np.zeros((len(test), args["n_fold"]))
 
 MODEL_NAME = arguments.model_name
 MODEL_TYPE = arguments.model_type
-cuda_device = arguments.cuda_device
+cuda_device = int(arguments.cuda_device)
 
 if args["evaluate_during_training"]:
     if os.path.exists(args['output_dir']) and os.path.isdir(args['output_dir']):
