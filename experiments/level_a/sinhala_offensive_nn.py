@@ -32,7 +32,7 @@ elif arguments.lang == "sin":
     sold_train_file = pd.read_csv('data/SOLD_train.tsv', sep="\t")
     train = sold_train_file.rename(columns={'content': 'text', 'Class': 'labels'})
     sold_test_file = pd.read_csv('data/SOLD_test.tsv', sep="\t")
-    test = sold_train_file.rename(columns={'content': 'text', 'Class': 'labels'})
+    test = sold_test_file.rename(columns={'content': 'text', 'Class': 'labels'})
 
     # train, test = train_test_split(sold_train_file, test_size=0.1, random_state=777)
 

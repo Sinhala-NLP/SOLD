@@ -26,7 +26,7 @@ parser.add_argument('--model_name', required=False, help='model name', default="
 parser.add_argument('--model_type', required=False, help='model type', default="xlmroberta")
 parser.add_argument('--cuda_device', required=False, help='cuda device', default=0)
 parser.add_argument('--train', required=False, help='train file', default='data/SOLD_train.tsv')
-parser.add_argument('--test', required=False, help='train file', default='data/SOLD_test.tsv')
+parser.add_argument('--test', required=False, help='test file', default='data/SOLD_test.tsv')
 arguments = parser.parse_args()
 
 # load training data
@@ -34,7 +34,7 @@ trn_data = pd.read_csv(arguments.train, sep="\t")
 trn_data = trn_data.rename(columns={'content': 'text', 'Class': 'labels'})
 train = trn_data[['text', 'labels']]
 
-tst_data = pd.read_csv(arguments.train, sep="\t")
+tst_data = pd.read_csv(arguments.test, sep="\t")
 tst_data = tst_data.rename(columns={'content': 'text', 'Class': 'labels'})
 test = tst_data[['text', 'labels']]
 
