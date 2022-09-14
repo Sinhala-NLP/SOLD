@@ -34,7 +34,7 @@ trn_data = pd.read_csv(arguments.train, sep="\t")
 tst_data = pd.read_csv(arguments.test, sep="\t")
 
 if arguments.lang == "en":
-    tst_data = tst_data.rename(columns={'tweet': 'text'})
+    trn_data, trn_data = train_test_split(trn_data, test_size=0.1)
 
 elif arguments.lang == "sin":
     trn_data = trn_data.rename(columns={'content': 'text', 'Class': 'labels'})
@@ -48,7 +48,6 @@ elif arguments.lang == "hin":
 train = trn_data[['text', 'labels']]
 test = tst_data[['text', 'labels']]
 
-# train, test = train_test_split(data, test_size=0.2)
 
 if LANGUAGE_FINETUNE:
     train_list = train['text'].tolist()
