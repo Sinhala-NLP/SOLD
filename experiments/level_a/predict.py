@@ -14,7 +14,7 @@ if not os.path.exists(os.path.join(TEMP_DIRECTORY, SUBMISSION_FOLDER)): os.maked
 parser = argparse.ArgumentParser(
     description='''evaluates multiple models  ''')
 
-hard_label = 'OFF'
+hard_label = 'NOT'
 parser.add_argument('--test', required=False, help='test file', default='data/SOLD_test.tsv')
 arguments = parser.parse_args()
 

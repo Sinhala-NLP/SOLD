@@ -18,9 +18,9 @@ parser.add_argument('--algorithm', required=False, help='algorithm', default="cn
 arguments = parser.parse_args()
 
 if arguments.lang == "en":
-    train_set = pd.read_csv('data/olid/olid-data_sub_task_a.tsv', sep="\t")
-    test_set = pd.read_csv('data/olid/testset-levela.tsv', sep="\t")
-    olid_test_labels = pd.read_csv('data/olid/labels-levela.csv', names=['index', 'labels'])
+    train_set = pd.read_csv('data/other/other-data_sub_task_a.tsv', sep="\t")
+    test_set = pd.read_csv('data/other/testset-levela.tsv', sep="\t")
+    olid_test_labels = pd.read_csv('data/other/labels-levela.csv', names=['index', 'labels'])
 
     train_set = train_set[['text', 'labels']]
     test_set = test_set.rename(columns={'tweet': 'text'})
@@ -31,6 +31,7 @@ if arguments.lang == "en":
 elif arguments.lang == "sin":
     sold_train_file = pd.read_csv('data/SOLD_train.tsv', sep="\t")
     train = sold_train_file.rename(columns={'content': 'text', 'Class': 'labels'})
+
     sold_test_file = pd.read_csv('data/SOLD_test.tsv', sep="\t")
     test = sold_test_file.rename(columns={'content': 'text', 'Class': 'labels'})
 
@@ -43,10 +44,13 @@ elif arguments.lang == "sin":
 
 
 elif arguments.lang == "hin":
-    sold_file = pd.read_csv('data/hin-data_sub_task_a.tsv', sep="\t")
-    sold_file = sold_file.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
+    hindi_train_file = pd.read_csv('data/other/hindi_dataset.tsv', sep="\t")
+    train = hindi_train_file.rename(columns={'task_1': 'labels'})
 
-    train, test = train_test_split(sold_file, test_size=0.1, random_state=777)
+    hindi_test_file = pd.read_csv('data/other/hasoc2019_hi_test_gold_2919.tsv', sep="\t")
+    test = hindi_test_file.rename(columns={'task_1': 'labels'})
+
+    # train, test = train_test_split(hindi_train_file, test_size=0.1, random_state=777)
     train_set = train[['text', 'labels']]
     train_set['labels'] = encode(train_set['labels'])
     test_set = test[['text', 'labels']]
