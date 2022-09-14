@@ -27,15 +27,25 @@ parser.add_argument('--model_type', required=False, help='model type', default="
 parser.add_argument('--cuda_device', required=False, help='cuda device', default=0)
 parser.add_argument('--train', required=False, help='train file', default='data/SOLD_train.tsv')
 parser.add_argument('--test', required=False, help='test file', default='data/SOLD_test.tsv')
+parser.add_argument('--lang', required=False, help='language', default="sin")  # en or sin or hin
 arguments = parser.parse_args()
 
-# load training data
 trn_data = pd.read_csv(arguments.train, sep="\t")
-trn_data = trn_data.rename(columns={'content': 'text', 'Class': 'labels'})
-train = trn_data[['text', 'labels']]
-
 tst_data = pd.read_csv(arguments.test, sep="\t")
-tst_data = tst_data.rename(columns={'content': 'text', 'Class': 'labels'})
+
+if arguments.lang == "en":
+    tst_data = tst_data.rename(columns={'tweet': 'text'})
+
+elif arguments.lang == "sin":
+    trn_data = trn_data.rename(columns={'content': 'text', 'Class': 'labels'})
+    tst_data = tst_data.rename(columns={'content': 'text', 'Class': 'labels'})
+
+elif arguments.lang == "hin":
+    trn_data = trn_data.rename(columns={'task_1': 'labels'})
+    tst_data = tst_data.rename(columns={'task_1': 'labels'})
+
+# load training data
+train = trn_data[['text', 'labels']]
 test = tst_data[['text', 'labels']]
 
 # train, test = train_test_split(data, test_size=0.2)
