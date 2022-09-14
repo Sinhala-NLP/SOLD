@@ -48,7 +48,7 @@ elif arguments.lang == "hin":
     train = hindi_train_file.rename(columns={'task_1': 'labels'})
 
     hindi_test_file = pd.read_csv('data/other/hasoc2019_hi_test_gold_2919.tsv', sep="\t")
-    test = hindi_test_file.rename(columns={'task_1': 'labels'})
+    test = hindi_test_file.rename(columns={'subtask_a': 'labels', 'tweet': 'text'})
 
     # train, test = train_test_split(hindi_train_file, test_size=0.1, random_state=777)
     train_set = train[['text', 'labels']]

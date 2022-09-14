@@ -42,7 +42,7 @@ elif arguments.lang == "sin":
 
 elif arguments.lang == "hin":
     trn_data = trn_data.rename(columns={'task_1': 'labels'})
-    tst_data = tst_data.rename(columns={'subtask_a': 'labels'})
+    tst_data = tst_data.rename(columns={'subtask_a': 'labels', 'tweet': 'text'})
 
 # load training data
 train = trn_data[['text', 'labels']]
