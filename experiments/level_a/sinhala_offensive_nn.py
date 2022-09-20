@@ -30,6 +30,7 @@ if arguments.lang == "en":
 
     train_set['labels'] = encode(train_set["labels"])
 
+
 elif arguments.lang == "sin":
     sold_train_file = pd.read_csv('data/SOLD_train.tsv', sep="\t")
     train = sold_train_file.rename(columns={'content': 'text', 'Class': 'labels'})
