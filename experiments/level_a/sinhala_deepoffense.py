@@ -163,7 +163,7 @@ if arguments.lang == "en":
 
 elif arguments.lang == "sin":
     trn_data = trn_data.rename(columns={'content': 'text', 'Class': 'labels'})
-    tst_data = tst_data.rename(columns={'content': 'text', 'Class': 'labels'})
+    # tst_data = tst_data.rename(columns={'content': 'text', 'Class': 'labels'})
 
 elif arguments.lang == "hin":
     trn_data = trn_data.rename(columns={'task_1': 'labels'})
@@ -171,7 +171,7 @@ elif arguments.lang == "hin":
 
 # load training data
 train = trn_data[['text', 'labels']]
-test = tst_data[['text', 'labels']]
+test = tst_data[['text']]
 
 if LANGUAGE_FINETUNE:
     train_list = train['text'].tolist()
