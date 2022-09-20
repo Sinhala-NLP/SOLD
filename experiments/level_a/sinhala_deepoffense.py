@@ -2,8 +2,7 @@ import argparse
 import gc
 import os
 import shutil
-import time
-import csv
+
 import numpy as np
 import pandas as pd
 import sklearn
@@ -11,12 +10,12 @@ import torch
 from sklearn.model_selection import train_test_split
 
 from deepoffense.classification import ClassificationModel
+from deepoffense.common.deepoffense_config import LANGUAGE_FINETUNE, TEMP_DIRECTORY, SUBMISSION_FOLDER, \
+    MODEL_TYPE, MODEL_NAME, language_modeling_args, args, SEED, RESULT_FILE
 from deepoffense.language_modeling.language_modeling_model import LanguageModelingModel
 from deepoffense.util.evaluation import macro_f1, weighted_f1
 from deepoffense.util.label_converter import decode, encode
-from deepoffense.common.deepoffense_config import LANGUAGE_FINETUNE, TEMP_DIRECTORY, SUBMISSION_FOLDER, \
-    MODEL_TYPE, MODEL_NAME, language_modeling_args, args, SEED, RESULT_FILE
-from deepoffense.util.print_stat import print_information, print_information_multi_class
+from deepoffense.util.print_stat import print_information
 
 if not os.path.exists(TEMP_DIRECTORY): os.makedirs(TEMP_DIRECTORY)
 if not os.path.exists(os.path.join(TEMP_DIRECTORY, SUBMISSION_FOLDER)): os.makedirs(
@@ -26,18 +25,31 @@ parser = argparse.ArgumentParser(
     description='''evaluates multiple models  ''')
 parser.add_argument('--model_name', required=False, help='model name', default="xlm-roberta-large")
 parser.add_argument('--model_type', required=False, help='model type', default="xlmroberta")
-parser.add_argument('--cuda_device', required=False, help='cuda device', default=1)
-parser.add_argument('--train', required=False, help='train file', default='data/olid/olid-training-v1.0.tsv')
-parser.add_argument('--test', required=False, help='test file')
+parser.add_argument('--cuda_device', required=False, help='cuda device', default=0)
+parser.add_argument('--train', required=False, help='train file', default='data/SOLD_train.tsv')
+parser.add_argument('--test', required=False, help='test file', default='data/SOLD_test.tsv')
+parser.add_argument('--lang', required=False, help='language', default="sin")  # en or sin or hin
 arguments = parser.parse_args()
 
-data = pd.read_csv(arguments.train, sep="\t")
-# data = data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
-# train = data[['text', 'labels']]
 if (arguments.test is None):
-    data = data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
-    train = data[['text', 'labels']]
-    train, test = train_test_split(data, test_size=0.2)
+    trn_data = pd.read_csv(arguments.train, sep="\t")
+    tst_data = pd.read_csv(arguments.test, sep="\t")
+
+    if arguments.lang == "en":
+        trn_data, tst_data = train_test_split(trn_data, test_size=0.1)
+
+    elif arguments.lang == "sin":
+        trn_data = trn_data.rename(columns={'content': 'text', 'Class': 'labels'})
+        tst_data = tst_data.rename(columns={'content': 'text', 'Class': 'labels'})
+
+    elif arguments.lang == "hin":
+        trn_data = trn_data.rename(columns={'task_1': 'labels'})
+        tst_data = tst_data.rename(columns={'subtask_a': 'labels', 'tweet': 'text'})
+
+    # load training data
+    train = trn_data[['text', 'labels']]
+    test = tst_data[['text', 'labels']]
+
 
     if LANGUAGE_FINETUNE:
         train_list = train['text'].tolist()
@@ -63,35 +75,32 @@ if (arguments.test is None):
     print("Started Training")
 
     train['labels'] = encode(train["labels"])
-    # c
-    # test['labels'] = encode(test["labels"])
+    test['labels'] = encode(test["labels"])
 
     test_sentences = test['text'].tolist()
     test_preds = np.zeros((len(test), args["n_fold"]))
 
     MODEL_NAME = arguments.model_name
     MODEL_TYPE = arguments.model_type
-    cuda_device = arguments.cuda_device
+    cuda_device = int(arguments.cuda_device)
 
     if args["evaluate_during_training"]:
         for i in range(args["n_fold"]):
             if os.path.exists(args['output_dir']) and os.path.isdir(args['output_dir']):
                 shutil.rmtree(args['output_dir'])
-            print("Started Fold {}".format(i))
             torch.cuda.set_device(cuda_device)
-            model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=args, num_labels=3,
+            model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=args,
                                         use_cuda=torch.cuda.is_available(),
                                         cuda_device=cuda_device)  # You can set class weights by using the optional weight argument
-            train_df, eval_df = train_test_split(train, test_size=0.1, random_state=SEED * i)
+            train_df, eval_df = train_test_split(train, test_size=0.1, random_state=SEED)
             model.train_model(train_df, eval_df=eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1,
                               accuracy=sklearn.metrics.accuracy_score)
-            # model = ClassificationModel(MODEL_TYPE, args["best_model_dir"], args=args,
-            #                             use_cuda=torch.cuda.is_available())
 
             predictions, raw_outputs = model.predict(test_sentences)
             print(predictions, raw_outputs)
             test_preds[:, i] = predictions
             print("Completed Fold {}".format(i))
+            # test['predictions'] = predictions
         # select majority class of each instance (row)
         final_predictions = []
         for row in test_preds:
@@ -99,7 +108,7 @@ if (arguments.test is None):
             final_predictions.append(int(max(set(row), key=row.count)))
         test['predictions'] = final_predictions
     else:
-        model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=args, num_labels=3,
+        model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=args,
                                     use_cuda=torch.cuda.is_available(), cuda_device=cuda_device)
         model.train_model(train, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
         predictions, raw_outputs = model.predict(test_sentences)
@@ -107,10 +116,6 @@ if (arguments.test is None):
         confidence_df = pd.DataFrame(raw_outputs)
         test['preds'] = predictions
         predictions_df = pd.merge(test, test[['preds']], how='left', left_index=True, right_index=True)
-        # predictions_df = pd.DataFrame.from_dict({'y_test': test, 'predictions': predictions}).to_csv('prediction.csv')
-        # need to add
-        # predictions_df = pd.merge(test, test[['preds']], how='left', left_index=True, right_index=True)
-        # predictions_df.to_csv('prediction_result.csv')
         predictions_df.to_csv('prediction.csv')
         confidence_df.to_csv('confidence_result.csv')
 
@@ -119,18 +124,19 @@ if (arguments.test is None):
     model.save_model()
 
     test['predictions'] = decode(test['predictions'])
-    # c
     # test['labels'] = decode(test['labels'])
 
     # time.sleep(5)
-    print_information_multi_class(test, "predictions", "labels")
 
+    print_information(test, "predictions", "labels")
     test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
-
+    # time.sleep(5)
+    # print_information_multi_class(test, "predictions", "labels")
+    #
+    # test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
     # new = 'python sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train'
     # exec(new)
-
-    import subprocess
+    # import subprocess
 
     # run your program and collect the string output
     # cmd = "python ../../sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train"
@@ -142,12 +148,29 @@ if (arguments.test is None):
     # out_str = subprocess.call(cmd, shell=True)
 
 else:
-    data = data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
-    train = data[['text', 'labels']]
+    # data = data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
+    # train = data[['text', 'labels']]
+    #
+    # test_data = pd.read_csv(arguments.test, sep="\t")
+    # test_data = test_data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
+    # test =test_data[['text', 'labels']]
+    trn_data = pd.read_csv(arguments.train, sep="\t")
+    tst_data = pd.read_csv(arguments.test, sep="\t")
 
-    test_data = pd.read_csv(arguments.test, sep="\t")
-    test_data = test_data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
-    test =test_data[['text', 'labels']]
+    if arguments.lang == "en":
+        trn_data, tst_data = train_test_split(trn_data, test_size=0.1)
+
+    elif arguments.lang == "sin":
+        trn_data = trn_data.rename(columns={'content': 'text', 'Class': 'labels'})
+        tst_data = tst_data.rename(columns={'content': 'text', 'Class': 'labels'})
+
+    elif arguments.lang == "hin":
+        trn_data = trn_data.rename(columns={'task_1': 'labels'})
+        tst_data = tst_data.rename(columns={'subtask_a': 'labels', 'tweet': 'text'})
+
+    # load training data
+    train = trn_data[['text', 'labels']]
+    test = tst_data[['text', 'labels']]
 
     if LANGUAGE_FINETUNE:
         train_list = train['text'].tolist()
@@ -309,7 +332,7 @@ else:
         # import subprocess
         # subprocess.call('python sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train')
 
-        gc.collect()
+        # gc.collect()
 
         # import subprocess
         #

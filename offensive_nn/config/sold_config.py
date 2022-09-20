@@ -1,8 +1,8 @@
 args = {
 
-    'output_dir': 'temp_olid/outputs/',
-    "best_model_dir": "temp_olid/outputs/best_model",
-    'cache_dir': 'temp_olid/cache_dir/',
+    'output_dir': 'temp_sold/outputs/',
+    "best_model_dir": "temp_sold/outputs/best_model",
+    'cache_dir': 'temp_sold/cache_dir/',
 
     "early_stopping": True,
     "early_stopping_min_delta" : 0.0001,
