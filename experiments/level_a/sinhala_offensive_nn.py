@@ -12,7 +12,7 @@ import numpy as np
 
 parser = argparse.ArgumentParser(
     description='''evaluates multiple models  ''')
-parser.add_argument('--model_name', required=False, help='model name', default="word2vec-google-news-300")
+parser.add_argument('--model_name', required=False, help='model name', default=None)
 parser.add_argument('--lang', required=False, help='language', default="en")  # en or sin
 parser.add_argument('--algorithm', required=False, help='algorithm', default="cnn2D")  # lstm or cnn2D
 arguments = parser.parse_args()
