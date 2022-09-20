@@ -31,327 +31,328 @@ parser.add_argument('--test', required=False, help='test file', default='data/SO
 parser.add_argument('--lang', required=False, help='language', default="sin")  # en or sin or hin
 arguments = parser.parse_args()
 
-if (arguments.test is None):
-    trn_data = pd.read_csv(arguments.train, sep="\t")
-    tst_data = pd.read_csv(arguments.test, sep="\t")
+# if (arguments.test is None):
+#     trn_data = pd.read_csv(arguments.train, sep=",")
+#     # tst_data = pd.read_csv(arguments.test, sep="\t")
+#
+#     if arguments.lang == "en":
+#         trn_data, tst_data = train_test_split(trn_data, test_size=0.1)
+#
+#     elif arguments.lang == "sin":
+#         trn_data, tst_data = train_test_split(trn_data, test_size=0.1)
+#         # tst_data = tst_data.rename(columns={'content': 'text', 'Class': 'labels'})
+#
+#     elif arguments.lang == "hin":
+#         trn_data = trn_data.rename(columns={'task_1': 'labels'})
+#         # tst_data = tst_data.rename(columns={'subtask_a': 'labels', 'tweet': 'text'})
+#
+#     # load training data
+#     train = trn_data[['text', 'labels']]
+#     test = tst_data[['text', 'labels']]
+#
+#
+#     if LANGUAGE_FINETUNE:
+#         train_list = train['text'].tolist()
+#         test_list = test['text'].tolist()
+#         complete_list = train_list + test_list
+#         lm_train = complete_list[0: int(len(complete_list) * 0.8)]
+#         lm_test = complete_list[-int(len(complete_list) * 0.2):]
+#
+#         with open(os.path.join(TEMP_DIRECTORY, "lm_train.txt"), 'w') as f:
+#             for item in lm_train:
+#                 f.write("%s\n" % item)
+#
+#         with open(os.path.join(TEMP_DIRECTORY, "lm_test.txt"), 'w') as f:
+#             for item in lm_test:
+#                 f.write("%s\n" % item)
+#
+#         model = LanguageModelingModel(MODEL_TYPE, MODEL_NAME, args=language_modeling_args)
+#         model.train_model(os.path.join(TEMP_DIRECTORY, "lm_train.txt"),
+#                           eval_file=os.path.join(TEMP_DIRECTORY, "lm_test.txt"))
+#         MODEL_NAME = language_modeling_args["best_model_dir"]
+#
+#     # Train the model
+#     print("Started Training")
+#
+#     train['labels'] = encode(train["labels"])
+#     test['labels'] = encode(test["labels"])
+#
+#     test_sentences = test['text'].tolist()
+#     test_preds = np.zeros((len(test), args["n_fold"]))
+#
+#     MODEL_NAME = arguments.model_name
+#     MODEL_TYPE = arguments.model_type
+#     cuda_device = int(arguments.cuda_device)
+#
+#     if args["evaluate_during_training"]:
+#         for i in range(args["n_fold"]):
+#             if os.path.exists(args['output_dir']) and os.path.isdir(args['output_dir']):
+#                 shutil.rmtree(args['output_dir'])
+#             torch.cuda.set_device(cuda_device)
+#             model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=args,
+#                                         use_cuda=torch.cuda.is_available(),
+#                                         cuda_device=cuda_device)  # You can set class weights by using the optional weight argument
+#             train_df, eval_df = train_test_split(train, test_size=0.1, random_state=SEED)
+#             model.train_model(train_df, eval_df=eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1,
+#                               accuracy=sklearn.metrics.accuracy_score)
+#
+#             predictions, raw_outputs = model.predict(test_sentences)
+#             print(predictions, raw_outputs)
+#             test_preds[:, i] = predictions
+#             print("Completed Fold {}".format(i))
+#             # test['predictions'] = predictions
+#         # select majority class of each instance (row)
+#         final_predictions = []
+#         for row in test_preds:
+#             row = row.tolist()
+#             final_predictions.append(int(max(set(row), key=row.count)))
+#         test['predictions'] = final_predictions
+#     else:
+#         model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=args,
+#                                     use_cuda=torch.cuda.is_available(), cuda_device=cuda_device)
+#         model.train_model(train, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
+#         predictions, raw_outputs = model.predict(test_sentences)
+#         print(raw_outputs)
+#         confidence_df = pd.DataFrame(raw_outputs)
+#         test['preds'] = predictions
+#         predictions_df = pd.merge(test, test[['preds']], how='left', left_index=True, right_index=True)
+#         predictions_df.to_csv('prediction.csv')
+#         confidence_df.to_csv('confidence_result.csv')
+#
+#         test['predictions'] = predictions
+#
+#     model.save_model()
+#
+#     test['predictions'] = decode(test['predictions'])
+#     # test['labels'] = decode(test['labels'])
+#
+#     # time.sleep(5)
+#
+#     print_information(test, "predictions", "labels")
+#     test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
+#     # time.sleep(5)
+#     # print_information_multi_class(test, "predictions", "labels")
+#     #
+#     # test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
+#     # new = 'python sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train'
+#     # exec(new)
+#     # import subprocess
+#
+#     # run your program and collect the string output
+#     # cmd = "python ../../sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train"
+#     # out_str = subprocess.call(cmd, shell=True)
+#     # cm1 = "../../"
+#     # # arguments.train = 'data/new_sold.tsv'
+#     # out_str1 = subprocess.call(cm1, shell=True)
+#     # cmd = "python -m experiments.level_a.sinhala_deepoffense --model_name="+arguments.model_name+" --model_type="+arguments.model_type+" --cuda_device="+arguments.cuda_device+" --train="+arguments.train+""
+#     # out_str = subprocess.call(cmd, shell=True)
+#
+# else:
+#     # data = data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
+#     # train = data[['text', 'labels']]
+#     #
+#     # test_data = pd.read_csv(arguments.test, sep="\t")
+#     # test_data = test_data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
+#     # test =test_data[['text', 'labels']]
 
-    if arguments.lang == "en":
-        trn_data, tst_data = train_test_split(trn_data, test_size=0.1)
+trn_data = pd.read_csv(arguments.train, sep="\t")
+tst_data = pd.read_csv(arguments.test, sep="\t")
 
-    elif arguments.lang == "sin":
-        trn_data = trn_data.rename(columns={'content': 'text', 'Class': 'labels'})
-        tst_data = tst_data.rename(columns={'content': 'text', 'Class': 'labels'})
+if arguments.lang == "en":
+    trn_data, tst_data = train_test_split(trn_data, test_size=0.1)
 
-    elif arguments.lang == "hin":
-        trn_data = trn_data.rename(columns={'task_1': 'labels'})
-        tst_data = tst_data.rename(columns={'subtask_a': 'labels', 'tweet': 'text'})
+elif arguments.lang == "sin":
+    trn_data = trn_data.rename(columns={'content': 'text', 'Class': 'labels'})
+    tst_data = tst_data.rename(columns={'content': 'text', 'Class': 'labels'})
 
-    # load training data
-    train = trn_data[['text', 'labels']]
-    test = tst_data[['text', 'labels']]
+elif arguments.lang == "hin":
+    trn_data = trn_data.rename(columns={'task_1': 'labels'})
+    tst_data = tst_data.rename(columns={'subtask_a': 'labels', 'tweet': 'text'})
+
+# load training data
+train = trn_data[['text', 'labels']]
+test = tst_data[['text', 'labels']]
+
+if LANGUAGE_FINETUNE:
+    train_list = train['text'].tolist()
+    test_list = test['text'].tolist()
+    complete_list = train_list + test_list
+    lm_train = complete_list[0: int(len(complete_list) * 0.8)]
+    lm_test = complete_list[-int(len(complete_list) * 0.2):]
+
+    with open(os.path.join(TEMP_DIRECTORY, "lm_train.txt"), 'w') as f:
+        for item in lm_train:
+            f.write("%s\n" % item)
+
+    with open(os.path.join(TEMP_DIRECTORY, "lm_test.txt"), 'w') as f:
+        for item in lm_test:
+            f.write("%s\n" % item)
+
+    model = LanguageModelingModel(MODEL_TYPE, MODEL_NAME, args=language_modeling_args)
+    model.train_model(os.path.join(TEMP_DIRECTORY, "lm_train.txt"),
+                      eval_file=os.path.join(TEMP_DIRECTORY, "lm_test.txt"))
+    MODEL_NAME = language_modeling_args["best_model_dir"]
+
+# Train the model
+print("Started Training")
+
+train['labels'] = encode(train["labels"])
+test_sentences = test['text'].tolist()
+test_preds = np.zeros((len(test), args["n_fold"]))
+
+MODEL_NAME = arguments.model_name
+MODEL_TYPE = arguments.model_type
+cuda_device = arguments.cuda_device
 
 
-    if LANGUAGE_FINETUNE:
-        train_list = train['text'].tolist()
-        test_list = test['text'].tolist()
-        complete_list = train_list + test_list
-        lm_train = complete_list[0: int(len(complete_list) * 0.8)]
-        lm_test = complete_list[-int(len(complete_list) * 0.2):]
 
-        with open(os.path.join(TEMP_DIRECTORY, "lm_train.txt"), 'w') as f:
-            for item in lm_train:
-                f.write("%s\n" % item)
+if args["evaluate_during_training"]:
+    for i in range(args["n_fold"]):
+        if os.path.exists(args['output_dir']) and os.path.isdir(args['output_dir']):
+            shutil.rmtree(args['output_dir'])
+        print("Started Fold {}".format(i))
+        torch.cuda.set_device(cuda_device)
+        model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=args, num_labels=3,
+                                    use_cuda=torch.cuda.is_available(),
+                                    cuda_device=cuda_device)  # You can set class weights by using the optional weight argument
+        train_df, eval_df = train_test_split(train, test_size=0.1, random_state=SEED * i)
+        model.train_model(train_df, eval_df=eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1,
+                          accuracy=sklearn.metrics.accuracy_score)
+        # model = ClassificationModel(MODEL_TYPE, args["best_model_dir"], args=args,
+        #                             use_cuda=torch.cuda.is_available())
 
-        with open(os.path.join(TEMP_DIRECTORY, "lm_test.txt"), 'w') as f:
-            for item in lm_test:
-                f.write("%s\n" % item)
-
-        model = LanguageModelingModel(MODEL_TYPE, MODEL_NAME, args=language_modeling_args)
-        model.train_model(os.path.join(TEMP_DIRECTORY, "lm_train.txt"),
-                          eval_file=os.path.join(TEMP_DIRECTORY, "lm_test.txt"))
-        MODEL_NAME = language_modeling_args["best_model_dir"]
-
-    # Train the model
-    print("Started Training")
-
-    train['labels'] = encode(train["labels"])
-    test['labels'] = encode(test["labels"])
-
-    test_sentences = test['text'].tolist()
-    test_preds = np.zeros((len(test), args["n_fold"]))
-
-    MODEL_NAME = arguments.model_name
-    MODEL_TYPE = arguments.model_type
-    cuda_device = int(arguments.cuda_device)
-
-    if args["evaluate_during_training"]:
-        for i in range(args["n_fold"]):
-            if os.path.exists(args['output_dir']) and os.path.isdir(args['output_dir']):
-                shutil.rmtree(args['output_dir'])
-            torch.cuda.set_device(cuda_device)
-            model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=args,
-                                        use_cuda=torch.cuda.is_available(),
-                                        cuda_device=cuda_device)  # You can set class weights by using the optional weight argument
-            train_df, eval_df = train_test_split(train, test_size=0.1, random_state=SEED)
-            model.train_model(train_df, eval_df=eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1,
-                              accuracy=sklearn.metrics.accuracy_score)
-
-            predictions, raw_outputs = model.predict(test_sentences)
-            print(predictions, raw_outputs)
-            test_preds[:, i] = predictions
-            print("Completed Fold {}".format(i))
-            # test['predictions'] = predictions
-        # select majority class of each instance (row)
-        final_predictions = []
-        for row in test_preds:
-            row = row.tolist()
-            final_predictions.append(int(max(set(row), key=row.count)))
-        test['predictions'] = final_predictions
-    else:
-        model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=args,
-                                    use_cuda=torch.cuda.is_available(), cuda_device=cuda_device)
-        model.train_model(train, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
         predictions, raw_outputs = model.predict(test_sentences)
-        print(raw_outputs)
-        confidence_df = pd.DataFrame(raw_outputs)
-        test['preds'] = predictions
-        predictions_df = pd.merge(test, test[['preds']], how='left', left_index=True, right_index=True)
-        predictions_df.to_csv('prediction.csv')
-        confidence_df.to_csv('confidence_result.csv')
+        print(predictions, raw_outputs)
+        test_preds[:, i] = predictions
+        print("Completed Fold {}".format(i))
+    # select majority class of each instance (row)
+    final_predictions = []
+    for row in test_preds:
+        row = row.tolist()
+        final_predictions.append(int(max(set(row), key=row.count)))
+    test['predictions'] = final_predictions
+else:
+    model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=args, num_labels=3,
+                                use_cuda=torch.cuda.is_available(), cuda_device=cuda_device)
+    model.train_model(train, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
+    predictions, raw_outputs = model.predict(test_sentences)
+    # print(raw_outputs)
+    confidence_df = pd.DataFrame(raw_outputs)
+    test['preds'] = predictions
+    predictions_df = pd.merge(test, test[['preds']], how='left', left_index=True, right_index=True)
+    predictions_df.to_csv('prediction.csv')
+    confidence_df.to_csv('confidence_result1.csv')
+    test['predictions'] = predictions
 
-        test['predictions'] = predictions
+    df1 = pd.read_csv('prediction.csv')
+    column_names = ['1', '2', '3']
+    df = pd.read_csv('confidence_result1.csv', names=column_names, header=None)
+    frames = [df, df1]
+    result = pd.concat([df1, df], axis=1)
+
+    new = []
+    new1 = []
+    new2 = []
+
+    m1 = np.mean(df['1'])
+    m2 = np.mean(df['2'])
+    m3 = np.mean(df['3'])
+
+    print(m1,m2,m3)
+
+    l1 = np.std(df['1'])
+    l2 = np.std(df['2'])
+    l3 = np.std(df['3'])
+
+    print(l1,l2,l3)
+
+    # 2.5, 2.0, 1,5, 1, 0.5
+
+    st1 = l1 / 2.5
+    st2 = l2 / 2.5
+    st3 = l3 / 2.5
+
+    print(st1, st2, st3)
+
+    for ix in df.index:
+        e = df.loc[ix]['1']
+        full = e - m1
+        f = df.loc[ix]['2']
+        full2 = f - m2
+        g = df.loc[ix]['3']
+        full3 = g - m3
+
+
+        if (full > st1):
+            new.append(df.loc[ix]['1'])
+            # print(new)
+        if (full2 > st2):
+            new1.append(df.loc[ix]['2'])
+            # print(new1)
+        if (full3 > st3):
+            new2.append(df.loc[ix]['3'])
+            # print(new2)
+
+
+
+    # print(l1)
+    # print(l2)
+    # print(l3)
+    #
+    # print(m1)
+    # print(m2)
+    # print(m3)
+
+    df_new = result.iloc[np.where(result['1'].isin(new))]
+    df_new2 = result.iloc[np.where(result['2'].isin(new1))]
+    df_new3 = result.iloc[np.where(result['3'].isin(new2))]
+    new_dataframe = pd.concat([df_new, df_new2, df_new3]).drop_duplicates()
+    # new_dataframe = pd.concat([df_new,df_new2]).drop_duplicates()
+    new_dataframe = new_dataframe.filter(['id', 'text', 'preds_y'])
+    new_dataframe['preds_y'] = new_dataframe['preds_y'].map({0.0: 'NOT', 1.0: 'OFF'})
+    new_dataframe.rename({'text': 'tweet', 'preds_y': 'subtask_a'}, axis=1, inplace=True)
+    new_dataframe.to_csv('new_train.csv')
 
     model.save_model()
 
-    test['predictions'] = decode(test['predictions'])
-    # test['labels'] = decode(test['labels'])
+    # test['predictions'] = decode(test['predictions'])
 
     # time.sleep(5)
-
-    print_information(test, "predictions", "labels")
     test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
-    # time.sleep(5)
-    # print_information_multi_class(test, "predictions", "labels")
-    #
-    # test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
-    # new = 'python sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train'
-    # exec(new)
-    # import subprocess
 
-    # run your program and collect the string output
-    # cmd = "python ../../sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train"
-    # out_str = subprocess.call(cmd, shell=True)
+    df_nw = pd.read_csv(arguments.train, sep="\t")
+    df_merged = df_nw.append(new_dataframe, ignore_index=True)
+    # how to replace this to same argument?????
+    df_merged.to_csv('data/new_sold.tsv', sep="\t")
+    del df_merged,model
+    arguments.train = 'data/new_sold.tsv'
+
+    # new ='python sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train'
+    # exec (new)
+    # print('----excecuted-----')
+    # os.system('python sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train')
+
+    # import subprocess
+    # subprocess.call('python sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train')
+
+    # gc.collect()
+
+    # import subprocess
+    #
+    # # run your program and collect the string output
     # cm1 = "../../"
     # # arguments.train = 'data/new_sold.tsv'
     # out_str1 = subprocess.call(cm1, shell=True)
-    # cmd = "python -m experiments.level_a.sinhala_deepoffense --model_name="+arguments.model_name+" --model_type="+arguments.model_type+" --cuda_device="+arguments.cuda_device+" --train="+arguments.train+""
+    # cmd = "python -m experiments.level_a.sinhala_deepoffense --model_name=" + arguments.model_name + " --model_type=" + arguments.model_type + " --train=" + arguments.train + ""
     # out_str = subprocess.call(cmd, shell=True)
 
-else:
-    # data = data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
-    # train = data[['text', 'labels']]
-    #
-    # test_data = pd.read_csv(arguments.test, sep="\t")
-    # test_data = test_data.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
-    # test =test_data[['text', 'labels']]
-    trn_data = pd.read_csv(arguments.train, sep="\t")
-    tst_data = pd.read_csv(arguments.test, sep="\t")
+    # parser = argparse.ArgumentParser(
+    #     description='''evaluates multiple models  ''')
+    # parser.add_argument('--model_name', required=False, help='model name', default="xlm-roberta-large")
+    # parser.add_argument('--model_type', required=False, help='model type', default="xlmroberta")
+    # parser.add_argument('--cuda_device', required=False, help='cuda device', default=1)
+    # parser.add_argument('--train', required=False, help='train file', default='data/olid/olid-training-v1.0.tsv')
+    # parser.add_argument('--test', required=False, help='test file')
+    # arguments = parser.parse_args()
 
-    if arguments.lang == "en":
-        trn_data, tst_data = train_test_split(trn_data, test_size=0.1)
-
-    elif arguments.lang == "sin":
-        trn_data = trn_data.rename(columns={'content': 'text', 'Class': 'labels'})
-        tst_data = tst_data.rename(columns={'content': 'text', 'Class': 'labels'})
-
-    elif arguments.lang == "hin":
-        trn_data = trn_data.rename(columns={'task_1': 'labels'})
-        tst_data = tst_data.rename(columns={'subtask_a': 'labels', 'tweet': 'text'})
-
-    # load training data
-    train = trn_data[['text', 'labels']]
-    test = tst_data[['text', 'labels']]
-
-    if LANGUAGE_FINETUNE:
-        train_list = train['text'].tolist()
-        test_list = test['text'].tolist()
-        complete_list = train_list + test_list
-        lm_train = complete_list[0: int(len(complete_list) * 0.8)]
-        lm_test = complete_list[-int(len(complete_list) * 0.2):]
-
-        with open(os.path.join(TEMP_DIRECTORY, "lm_train.txt"), 'w') as f:
-            for item in lm_train:
-                f.write("%s\n" % item)
-
-        with open(os.path.join(TEMP_DIRECTORY, "lm_test.txt"), 'w') as f:
-            for item in lm_test:
-                f.write("%s\n" % item)
-
-        model = LanguageModelingModel(MODEL_TYPE, MODEL_NAME, args=language_modeling_args)
-        model.train_model(os.path.join(TEMP_DIRECTORY, "lm_train.txt"),
-                          eval_file=os.path.join(TEMP_DIRECTORY, "lm_test.txt"))
-        MODEL_NAME = language_modeling_args["best_model_dir"]
-
-    # Train the model
-    print("Started Training")
-
-    train['labels'] = encode(train["labels"])
-    test_sentences = test['text'].tolist()
-    test_preds = np.zeros((len(test), args["n_fold"]))
-
-    MODEL_NAME = arguments.model_name
-    MODEL_TYPE = arguments.model_type
-    cuda_device = arguments.cuda_device
-
-
-
-    if args["evaluate_during_training"]:
-        for i in range(args["n_fold"]):
-            if os.path.exists(args['output_dir']) and os.path.isdir(args['output_dir']):
-                shutil.rmtree(args['output_dir'])
-            print("Started Fold {}".format(i))
-            torch.cuda.set_device(cuda_device)
-            model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=args, num_labels=3,
-                                        use_cuda=torch.cuda.is_available(),
-                                        cuda_device=cuda_device)  # You can set class weights by using the optional weight argument
-            train_df, eval_df = train_test_split(train, test_size=0.1, random_state=SEED * i)
-            model.train_model(train_df, eval_df=eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1,
-                              accuracy=sklearn.metrics.accuracy_score)
-            # model = ClassificationModel(MODEL_TYPE, args["best_model_dir"], args=args,
-            #                             use_cuda=torch.cuda.is_available())
-
-            predictions, raw_outputs = model.predict(test_sentences)
-            print(predictions, raw_outputs)
-            test_preds[:, i] = predictions
-            print("Completed Fold {}".format(i))
-        # select majority class of each instance (row)
-        final_predictions = []
-        for row in test_preds:
-            row = row.tolist()
-            final_predictions.append(int(max(set(row), key=row.count)))
-        test['predictions'] = final_predictions
-    else:
-        model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=args, num_labels=3,
-                                    use_cuda=torch.cuda.is_available(), cuda_device=cuda_device)
-        model.train_model(train, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
-        predictions, raw_outputs = model.predict(test_sentences)
-        # print(raw_outputs)
-        confidence_df = pd.DataFrame(raw_outputs)
-        test['preds'] = predictions
-        predictions_df = pd.merge(test, test[['preds']], how='left', left_index=True, right_index=True)
-        predictions_df.to_csv('prediction.csv')
-        confidence_df.to_csv('confidence_result1.csv')
-        test['predictions'] = predictions
-
-        df1 = pd.read_csv('prediction.csv')
-        column_names = ['1', '2', '3']
-        df = pd.read_csv('confidence_result1.csv', names=column_names, header=None)
-        frames = [df, df1]
-        result = pd.concat([df1, df], axis=1)
-
-        new = []
-        new1 = []
-        new2 = []
-
-        m1 = np.mean(df['1'])
-        m2 = np.mean(df['2'])
-        m3 = np.mean(df['3'])
-
-        print(m1,m2,m3)
-
-        l1 = np.std(df['1'])
-        l2 = np.std(df['2'])
-        l3 = np.std(df['3'])
-
-        print(l1,l2,l3)
-
-        # 2.5, 2.0, 1,5, 1, 0.5
-
-        st1 = l1 / 2.5
-        st2 = l2 / 2.5
-        st3 = l3 / 2.5
-
-        print(st1, st2, st3)
-
-        for ix in df.index:
-            e = df.loc[ix]['1']
-            full = e - m1
-            f = df.loc[ix]['2']
-            full2 = f - m2
-            g = df.loc[ix]['3']
-            full3 = g - m3
-
-
-            if (full > st1):
-                new.append(df.loc[ix]['1'])
-                # print(new)
-            if (full2 > st2):
-                new1.append(df.loc[ix]['2'])
-                # print(new1)
-            if (full3 > st3):
-                new2.append(df.loc[ix]['3'])
-                # print(new2)
-
-
-
-        # print(l1)
-        # print(l2)
-        # print(l3)
-        #
-        # print(m1)
-        # print(m2)
-        # print(m3)
-
-        df_new = result.iloc[np.where(result['1'].isin(new))]
-        df_new2 = result.iloc[np.where(result['2'].isin(new1))]
-        df_new3 = result.iloc[np.where(result['3'].isin(new2))]
-        new_dataframe = pd.concat([df_new, df_new2, df_new3]).drop_duplicates()
-        # new_dataframe = pd.concat([df_new,df_new2]).drop_duplicates()
-        new_dataframe = new_dataframe.filter(['id', 'text', 'preds_y'])
-        new_dataframe['preds_y'] = new_dataframe['preds_y'].map({0.0: 'NOT', 1.0: 'OFF'})
-        new_dataframe.rename({'text': 'tweet', 'preds_y': 'subtask_a'}, axis=1, inplace=True)
-        new_dataframe.to_csv('new_train.csv')
-
-        model.save_model()
-
-        # test['predictions'] = decode(test['predictions'])
-
-        # time.sleep(5)
-        test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
-
-        df_nw = pd.read_csv(arguments.train, sep="\t")
-        df_merged = df_nw.append(new_dataframe, ignore_index=True)
-        # how to replace this to same argument?????
-        df_merged.to_csv('data/new_sold.tsv', sep="\t")
-        del df_merged,model
-        arguments.train = 'data/new_sold.tsv'
-
-        # new ='python sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train'
-        # exec (new)
-        # print('----excecuted-----')
-        # os.system('python sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train')
-
-        # import subprocess
-        # subprocess.call('python sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train')
-
-        # gc.collect()
-
-        # import subprocess
-        #
-        # # run your program and collect the string output
-        # cm1 = "../../"
-        # # arguments.train = 'data/new_sold.tsv'
-        # out_str1 = subprocess.call(cm1, shell=True)
-        # cmd = "python -m experiments.level_a.sinhala_deepoffense --model_name=" + arguments.model_name + " --model_type=" + arguments.model_type + " --train=" + arguments.train + ""
-        # out_str = subprocess.call(cmd, shell=True)
-
-        # parser = argparse.ArgumentParser(
-        #     description='''evaluates multiple models  ''')
-        # parser.add_argument('--model_name', required=False, help='model name', default="xlm-roberta-large")
-        # parser.add_argument('--model_type', required=False, help='model type', default="xlmroberta")
-        # parser.add_argument('--cuda_device', required=False, help='cuda device', default=1)
-        # parser.add_argument('--train', required=False, help='train file', default='data/olid/olid-training-v1.0.tsv')
-        # parser.add_argument('--test', required=False, help='test file')
-        # arguments = parser.parse_args()
-
-    # df_merged
+# df_merged
