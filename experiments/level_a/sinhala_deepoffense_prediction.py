@@ -241,11 +241,10 @@ confidence_df = pd.DataFrame(probs)
 test['preds'] = predictions
 predictions_df = pd.merge(test, test[['preds']], how='left', left_index=True, right_index=True)
 predictions_df.to_csv('prediction.csv')
-confidence_df.to_csv('confidence_result1.csv')
+confidence_df.to_csv('confidence_result1.csv', index=False)
 test['predictions'] = predictions
-
 df1 = pd.read_csv('prediction.csv')
-column_names = ['1', '2', '3']
+column_names = ['1', '2']
 df = pd.read_csv('confidence_result1.csv', names=column_names, header=None)
 frames = [df, df1]
 result = pd.concat([df1, df], axis=1)
@@ -256,31 +255,27 @@ new2 = []
 
 m1 = np.mean(df['1'])
 m2 = np.mean(df['2'])
-m3 = np.mean(df['3'])
 
-print(m1,m2,m3)
+print(m1,m2)
 
 l1 = np.std(df['1'])
 l2 = np.std(df['2'])
-l3 = np.std(df['3'])
 
-print(l1,l2,l3)
+print(l1,l2)
 
-# 2.5, 2.0, 1,5, 1, 0.5
+# 0.01, 0.015, 0.02
 
 st1 = l1 / 2.5
 st2 = l2 / 2.5
-st3 = l3 / 2.5
 
-print(st1, st2, st3)
+print(st1, st2)
 
 for ix in df.index:
     e = df.loc[ix]['1']
     full = e - m1
     f = df.loc[ix]['2']
     full2 = f - m2
-    g = df.loc[ix]['3']
-    full3 = g - m3
+
 
 
     if (full > st1):
@@ -289,9 +284,9 @@ for ix in df.index:
     if (full2 > st2):
         new1.append(df.loc[ix]['2'])
         # print(new1)
-    if (full3 > st3):
-        new2.append(df.loc[ix]['3'])
-        # print(new2)
+    # if (full3 > st3):
+    #     new2.append(df.loc[ix]['3'])
+    #     # print(new2)
 
 # print(l1)
 # print(l2)
@@ -303,8 +298,8 @@ for ix in df.index:
 
 df_new = result.iloc[np.where(result['1'].isin(new))]
 df_new2 = result.iloc[np.where(result['2'].isin(new1))]
-df_new3 = result.iloc[np.where(result['3'].isin(new2))]
-new_dataframe = pd.concat([df_new, df_new2, df_new3]).drop_duplicates()
+# df_new3 = result.iloc[np.where(result['3'].isin(new2))]
+new_dataframe = pd.concat([df_new, df_new2]).drop_duplicates()
 # new_dataframe = pd.concat([df_new,df_new2]).drop_duplicates()
 new_dataframe = new_dataframe.filter(['id', 'text', 'preds_y'])
 new_dataframe['preds_y'] = new_dataframe['preds_y'].map({0.0: 'NOT', 1.0: 'OFF'})
