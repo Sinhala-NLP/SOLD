@@ -1,3 +1,5 @@
+from contextlib import redirect_stdout
+
 from sklearn.metrics import recall_score, precision_score, f1_score, accuracy_score
 
 
@@ -36,14 +38,16 @@ def print_information_multi_class(df, pred_column, real_column):
     #     print("F1 Score {}".format(f1_score(real_values, predictions, labels=labels, pos_label=label, average='weighted')))
 
     print()
-    with open('outputresults.txt', 'a') as f:
+    with open('out.txt','w') as f:
+        with redirect_stdout(f):
+    # with open('outputresults.txt', 'a') as f:
 
-        print("Accuracy {}".format(accuracy_score(real_values, predictions)),file=f)
-        print("Weighted Recall {}".format(recall_score(real_values, predictions, average='weighted')), file=f)
-        print("Weighted Precision {}".format(precision_score(real_values, predictions, average='weighted')),file=f)
-        print("Weighter F1 Score {}".format(f1_score(real_values, predictions, average='weighted')),file=f)
+            print("Accuracy {}".format(accuracy_score(real_values, predictions)))
+            print("Weighted Recall {}".format(recall_score(real_values, predictions, average='weighted')))
+            print("Weighted Precision {}".format(precision_score(real_values, predictions, average='weighted')))
+            print("Weighter F1 Score {}".format(f1_score(real_values, predictions, average='weighted')))
 
-        print("Macro F1 Score {}".format(f1_score(real_values, predictions, average='macro')),file=f)
+            print("Macro F1 Score {}".format(f1_score(real_values, predictions, average='macro')))
 
 
 
