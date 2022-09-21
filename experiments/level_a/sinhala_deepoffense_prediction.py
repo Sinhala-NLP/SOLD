@@ -211,7 +211,7 @@ for i in range(args["n_fold"]):
         shutil.rmtree(args['output_dir'])
     print("Started Fold {}".format(i))
     torch.cuda.set_device(cuda_device)
-    model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=args, num_labels=3,
+    model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=args,
                                 use_cuda=torch.cuda.is_available(),
                                 cuda_device=cuda_device)  # You can set class weights by using the optional weight argument
     # train_df, eval_df = train_test_split(train, test_size=0.1, random_state=SEED * i)
