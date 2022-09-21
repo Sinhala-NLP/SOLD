@@ -128,7 +128,7 @@ arguments = parser.parse_args()
 #
 #     # time.sleep(5)
 #
-#     print_information(test, "predictions", "labels")
+  # print_information(test, "predictions", "labels")
 #     test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
 #     # time.sleep(5)
 #     # print_information_multi_class(test, "predictions", "labels")
@@ -172,6 +172,7 @@ elif arguments.lang == "hin":
 # load training data
 train = trn_data[['text', 'labels']]
 test = tst_data[['text']]
+# test = tst_data[['text','labels']]
 
 if LANGUAGE_FINETUNE:
     train_list = train['text'].tolist()
@@ -308,7 +309,7 @@ else:
     # new_dataframe = pd.concat([df_new,df_new2]).drop_duplicates()
     new_dataframe = new_dataframe.filter(['id', 'text', 'preds_y'])
     new_dataframe['preds_y'] = new_dataframe['preds_y'].map({0.0: 'NOT', 1.0: 'OFF'})
-    new_dataframe.rename({'text': 'tweet', 'preds_y': 'subtask_a'}, axis=1, inplace=True)
+    new_dataframe.rename({'text': 'content', 'preds_y': 'Class'}, axis=1, inplace=True)
     new_dataframe.to_csv('new_train.csv')
 
     model.save_model()
@@ -316,14 +317,15 @@ else:
     # test['predictions'] = decode(test['predictions'])
 
     # time.sleep(5)
+    print_information(test, "predictions", "labels")
     test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
 
     df_nw = pd.read_csv(arguments.train, sep="\t")
     df_merged = df_nw.append(new_dataframe, ignore_index=True)
     # how to replace this to same argument?????
     df_merged.to_csv('data/new_sold.tsv', sep="\t")
-    del df_merged,model
-    arguments.train = 'data/new_sold.tsv'
+    # del df_merged,model
+    # arguments.train = 'data/new_sold.tsv'
 
     # new ='python sinhala_deepoffense.py --model_name=arguments.model_name, --model_type=arguments.model_type, --cuda_device=arguments.cuda_device,--train=arguments.train'
     # exec (new)
