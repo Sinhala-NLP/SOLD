@@ -293,8 +293,6 @@ for ix in df.index:
         new2.append(df.loc[ix]['3'])
         # print(new2)
 
-
-
 # print(l1)
 # print(l2)
 # print(l3)
@@ -318,7 +316,7 @@ model.save_model()
 # test['predictions'] = decode(test['predictions'])
 
 # time.sleep(5)
-print_information(test, "predictions", "labels")
+print_information(test, "predictions", "Class")
 test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
 
 df_nw = pd.read_csv(arguments.train, sep="\t")
