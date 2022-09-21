@@ -265,8 +265,8 @@ print(l1,l2)
 
 # 0.01, 0.015, 0.02
 
-st1 = l1 / 2.5
-st2 = l2 / 2.5
+st1 = l1 / 0.2
+st2 = l2 / 0.2
 
 print(st1, st2)
 
@@ -276,12 +276,10 @@ for ix in df.index:
     f = df.loc[ix]['2']
     full2 = f - m2
 
-
-
-    if (full > st1):
+    if (full < st1):
         new.append(df.loc[ix]['1'])
         # print(new)
-    if (full2 > st2):
+    if (full2 < st2):
         new1.append(df.loc[ix]['2'])
         # print(new1)
     # if (full3 > st3):
@@ -319,3 +317,6 @@ df_nw = pd.read_csv(arguments.train, sep="\t")
 df_merged = df_nw.append(new_dataframe, ignore_index=True)
 # how to replace this to same argument?????
 df_merged.to_csv('data/new_sold.tsv', sep="\t")
+
+
+
