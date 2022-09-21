@@ -311,18 +311,19 @@ else:
     new_dataframe['preds_y'] = new_dataframe['preds_y'].map({0.0: 'NOT', 1.0: 'OFF'})
     new_dataframe.rename({'text': 'content', 'preds_y': 'Class'}, axis=1, inplace=True)
     new_dataframe.to_csv('new_train.csv')
-
+    print_information(test, "predictions", "labels")
     model.save_model()
 
     # test['predictions'] = decode(test['predictions'])
 
     # time.sleep(5)
-    print_information(test, "predictions", "labels")
+
     test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
 
     df_nw = pd.read_csv(arguments.train, sep="\t")
     df_merged = df_nw.append(new_dataframe, ignore_index=True)
     # how to replace this to same argument?????
+    print_information(test, "predictions", "labels")
     df_merged.to_csv('data/new_sold.tsv', sep="\t")
     # del df_merged,model
     # arguments.train = 'data/new_sold.tsv'

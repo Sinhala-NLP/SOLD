@@ -45,4 +45,6 @@ def print_information_multi_class(df, pred_column, real_column):
 
         print("Macro F1 Score {}".format(f1_score(real_values, predictions, average='macro')),file=f)
 
+
+
     # return accuracy_score(real_values, predictions)
