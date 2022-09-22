@@ -272,15 +272,15 @@ print(st1, st2)
 
 for ix in df.index:
     e = df.loc[ix]['1']
-    full = e - m1
+    # full = e - m1
     f = df.loc[ix]['2']
-    full2 = f - m2
+    # full2 = f - m2
 
-    if (full < st1):
+    if (m1 + l1 > e):
         new.append(df.loc[ix]['1'])
     else:
-        if (full2 < st1):
-            new.append(f.loc[ix]['2'])
+        if (m2 + l1 > f):
+            new2.append(f.loc[ix]['2'])
     #     # print(new)
     # if (full2 < st2):
     #     new1.append(df.loc[ix]['2'])
@@ -298,10 +298,10 @@ for ix in df.index:
 # print(m3)
 
 df_new = result.iloc[np.where(result['1'].isin(new))]
-# df_new2 = result.iloc[np.where(result['2'].isin(new1))]
+df_new2 = result.iloc[np.where(result['2'].isin(new2))]
 # df_new3 = result.iloc[np.where(result['3'].isin(new2))]
 # new_dataframe = pd.concat([df_new, df_new2]).drop_duplicates()
-# new_dataframe = pd.concat([df_new,df_new2]).drop_duplicates()
+new_dataframe = pd.concat([df_new,df_new2]).drop_duplicates()
 new_dataframe = df_new.filter(['id', 'text', 'preds_y'])
 new_dataframe['preds_y'] = new_dataframe['preds_y'].map({0.0: 'NOT', 1.0: 'OFF'})
 new_dataframe.rename({'text': 'content', 'preds_y': 'Class'}, axis=1, inplace=True)
