@@ -33,5 +33,6 @@ class OffensiveCNN2DModel:
         z = layers.Flatten(name="flatten_layer")(z)
         z = layers.Dropout(0.1, name="dropout_layer")(z)
         outp = layers.Dense(args.num_classes, activation="softmax", name="dense_predictions")(z)
-        emb.set_weights([embedding_matrix])
+        if embedding_matrix is not None:
+            emb.set_weights([embedding_matrix])
         self.model = tf.keras.Model(inputs=inp, outputs=outp, name="cnn_model")

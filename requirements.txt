@@ -1,8 +1,8 @@
 tensorflow==2.8.0
-pandas
+pandas==1.4.0
 numpy
 gensim
 sklearn
 datasets
 tensorboardX
-transformers
+transformers==4.16.2
