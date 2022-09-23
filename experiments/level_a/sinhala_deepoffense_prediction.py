@@ -248,6 +248,7 @@ column_names = ['1', '2']
 df = pd.read_csv('confidence_result1.csv', names=column_names, header=None)
 frames = [df, df1]
 result = pd.concat([df1, df], axis=1)
+all_result = pd.read_csv('one_prediction.csv')
 
 new = []
 new1 = []
@@ -261,14 +262,14 @@ print(m1,m2)
 l1 = np.std(df['1'])
 l2 = np.std(df['2'])
 
-print(l1,l2)
+# print(l1,l2)
 
 # 0.01, 0.015, 0.02
+#
+# st1 = l1 / 0.4
+# st2 = l2 / 0.4
 
-st1 = l1 / 0.4
-st2 = l2 / 0.4
-
-print(st1, st2)
+# print(st1, st2)
 
 for ix in df.index:
     e = df.loc[ix]['1']
@@ -276,7 +277,7 @@ for ix in df.index:
     f = df.loc[ix]['2']
     # full2 = f - m2
 
-    if (m1 + l1 > e):
+    if ((m1 + l1 > e) and (m1 - l1 < e)):
         new.append(df.loc[ix]['1'])
     else:
         if (m2 + l1 > f):
