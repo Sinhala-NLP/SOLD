@@ -259,7 +259,7 @@ m2 = np.mean(df['2'])
 
 print(m1,m2)
 
-l1 = np.std(df['1'])
+l1 = 0.02
 l2 = np.std(df['2'])
 
 # print(l1,l2)
@@ -272,31 +272,34 @@ l2 = np.std(df['2'])
 # print(st1, st2)
 
 # get all the offensive and not offensive posts from the dataset
-# df_group_posts = result.groupby('')
-# offensive_posts = df_group_posts.get_group('')
-# for ix in offensive_posts.index:
-#     off_prob = offensive_posts.loc[ix]['']
-#     if ((m1 + l1 > off_prob) and (m1 - l1 < off_prob)):
-#         new.append(offensive_posts.loc[ix][''])
+df_group_posts = result.groupby('preds_y')
+offensive_posts = df_group_posts.get_group('1.0')
+for ix in offensive_posts.index:
+    off_prob = offensive_posts.loc[ix]['4']
+    if ((m1 + l1 > off_prob) and (m1 - l1 < off_prob)):
+        new.append(offensive_posts.loc[ix]['1'])
+
+offensive_not_posts = df_group_posts.get_group('0.0')
+for ix in offensive_not_posts.index:
+    not_off_prob = offensive_not_posts.loc[ix]['5']
+    if ((m1 + l1 > not_off_prob) and (m1 - l1 < not_off_prob)):
+        new2.append(offensive_not_posts.loc[ix]['2'])
+
+
+# for ix in df.index:
+#     e = df.loc[ix]['1']
+#     # full = e - m1
+#     f = df.loc[ix]['2']
+#     # full2 = f - m2
 #
-# offensive_not_posts = df_group_posts.get_group('')
-# for ix in offensive_not_posts.index:
-#     not_off_prob = offensive_not_posts.loc[ix]['']
-#     if ((m1 + l1 > not_off_prob) and (m1 - l1 < not_off_prob)):
-#         new.append(offensive_not_posts.loc[ix][''])
-
-
-for ix in df.index:
-    e = df.loc[ix]['1']
-    # full = e - m1
-    f = df.loc[ix]['2']
-    # full2 = f - m2
-
-    if ((m1 + l1 > e) and (m1 - l1 < e)):
-        new.append(df.loc[ix]['1'])
-    else:
-        if (m2 + l1 > f):
-            new2.append(f.loc[ix]['2'])
+#     if ((m1 + 0.02 > e) and (m1 - 0.02 < e)):
+#         new.append(df.loc[ix]['1'])
+#     else:
+#         if (m2 + l1 > f):
+#             new2.append(f.loc[ix]['2'])
+#
+#
+#
     #     # print(new)
     # if (full2 < st2):
     #     new1.append(df.loc[ix]['2'])
