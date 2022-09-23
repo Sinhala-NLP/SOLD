@@ -248,7 +248,7 @@ column_names = ['1', '2']
 df = pd.read_csv('confidence_result1.csv', names=column_names, header=None)
 frames = [df, df1]
 result = pd.concat([df1, df], axis=1)
-all_result = pd.read_csv('one_prediction.csv')
+all_result = pd.to_csv('one_prediction.csv')
 
 new = []
 new1 = []
@@ -270,6 +270,10 @@ l2 = np.std(df['2'])
 # st2 = l2 / 0.4
 
 # print(st1, st2)
+
+# # get all the offensive and not offensive posts from the dataset
+# df_group_posts = result.groupby('')
+# offensive_posts = df_group_posts.get_group('')
 
 for ix in df.index:
     e = df.loc[ix]['1']
