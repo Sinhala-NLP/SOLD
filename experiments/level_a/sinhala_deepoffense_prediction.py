@@ -259,6 +259,7 @@ m2 = np.mean(df['2'])
 
 print(m1,m2)
 
+
 l1 = 0.015
 l2 = np.std(df['2'])
 
