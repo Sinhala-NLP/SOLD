@@ -259,7 +259,7 @@ m2 = np.mean(df['2'])
 
 print(m1,m2)
 
-l1 = 0.05
+l1 = 0.1
 l2 = np.std(df['2'])
 
 # print(l1,l2)
@@ -326,7 +326,7 @@ new_dataframe['preds_y'] = new_dataframe['preds_y'].map({0.0: 'NOT', 1.0: 'OFF'}
 new_dataframe.rename({'text': 'content', 'preds_y': 'Class'}, axis=1, inplace=True)
 new_dataframe.to_csv('new_train.csv')
 
-model.save_model()
+# model.save_model()
 
 # test['predictions'] = decode(test['predictions'])
 
