@@ -1,17 +1,15 @@
 import logging
+import os
 import random
 import shutil
 
-import tensorflow as tf
-import gensim.downloader as api
-from tensorflow import keras
-
-import numpy as np
-import os
 import absl.logging
-
+import gensim.downloader as api
+import gensim.utils
+import numpy as np
+import tensorflow as tf
+from tensorflow import keras
 from tensorflow.python.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
-
 
 from offensive_nn.model_args import ModelArgs
 from offensive_nn.models.offensive_cnn1d_model import OffensiveCNN1DModel
@@ -21,7 +19,6 @@ from offensive_nn.models.offensive_lstm_model import OffensiveLSTMModel
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)
 
-
 absl.logging.set_verbosity(absl.logging.ERROR)
 
 logger = logging.getLogger(__name__)
@@ -29,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 class OffensiveNNModel:
     def __init__(self, model_type_or_path,
-                 embedding_model_name=None,
+                 embedding_model_name_or_path=None,
                  train_df=None,
                  eval_df=None,
                  args=None):
@@ -57,7 +54,8 @@ class OffensiveNNModel:
             self.train_texts, self.train_labels = self._prepare_data(self.train_df)
             self.eval_texts, self.eval_labels = self._prepare_data(self.eval_df)
 
-            self.vectorizer = tf.keras.layers.TextVectorization(max_tokens=self.args.max_features, output_sequence_length=self.args.max_len)
+            self.vectorizer = tf.keras.layers.TextVectorization(max_tokens=self.args.max_features,
+                                                                output_sequence_length=self.args.max_len)
             self.train_ds = tf.data.Dataset.from_tensor_slices(self.train_texts).batch(self.args.train_batch_size)
             self.vectorizer.adapt(self.train_ds)
 
@@ -66,8 +64,19 @@ class OffensiveNNModel:
 
             self.args.max_features = len(self.word_index) + 1
 
-            self.embedding_model = api.load(embedding_model_name)
-            self.embedding_matrix = self.get_emb_matrix(self.word_index, self.args.max_features, self.embedding_model)
+            # load embeddings from file,api or no embeddings if embedding_model_name_or_path is None
+            if embedding_model_name_or_path is not None:
+                if os.path.isfile(embedding_model_name_or_path):
+                    save_load = gensim.utils.SaveLoad()
+                    obj = save_load.load(fname=embedding_model_name_or_path)
+                    self.embedding_model = obj.wv
+                else:
+                    self.embedding_model = api.load(embedding_model_name_or_path)
+
+                self.embedding_matrix = self.get_emb_matrix(self.word_index, self.args.max_features,
+                                                            self.embedding_model)
+            else:
+                self.embedding_matrix = None
 
             MODEL_CLASSES = {
                 "cnn1D": OffensiveCNN1DModel,
@@ -96,7 +105,8 @@ class OffensiveNNModel:
         callbacks = []
 
         if self.args.save_best_model:
-            checkpoint = ModelCheckpoint(self.args.cache_dir, monitor='val_loss', verbose=verbose, save_best_only=True, mode='min')
+            checkpoint = ModelCheckpoint(self.args.cache_dir, monitor='val_loss', verbose=verbose, save_best_only=True,
+                                         mode='min')
             callbacks.append(checkpoint)
 
         if self.args.reduce_lr_on_plateau:
@@ -117,8 +127,8 @@ class OffensiveNNModel:
         y_val = np.array(self.eval_labels)
 
         self.model.fit(x_train, y_train, batch_size=self.args.train_batch_size,
-                               epochs=self.args.num_train_epochs, validation_data=(x_val, y_val),
-                               verbose=verbose, callbacks=callbacks)
+                       epochs=self.args.num_train_epochs, validation_data=(x_val, y_val),
+                       verbose=verbose, callbacks=callbacks)
 
         self.model = keras.models.load_model(self.args.cache_dir)
         self.save_model()
@@ -191,7 +201,7 @@ class OffensiveNNModel:
             else:
                 no_embedding_count = no_embedding_count + 1
 
-        no_embedding_rate = no_embedding_count/ (embedding_count + no_embedding_count)
-        logger.warning("Embeddings are not found for {:.2f}% words.".format(no_embedding_rate*100))
+        no_embedding_rate = no_embedding_count / (embedding_count + no_embedding_count)
+        logger.warning("Embeddings are not found for {:.2f}% words.".format(no_embedding_rate * 100))
 
         return embedding_matrix
