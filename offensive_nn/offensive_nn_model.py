@@ -64,16 +64,19 @@ class OffensiveNNModel:
 
             self.args.max_features = len(self.word_index) + 1
 
-            # load from local w2v file without downloading
-            if os.path.isfile(embedding_model_name_or_path):
-                save_load = gensim.utils.SaveLoad()
-                obj = save_load.load(fname=embedding_model_name_or_path)
-                self.embedding_model = obj.wv
-            else:
-                self.embedding_model = api.load(embedding_model_name_or_path)
+            # load embeddings from file,api or no embeddings if embedding_model_name_or_path is None
+            if embedding_model_name_or_path is not None:
+                if os.path.isfile(embedding_model_name_or_path):
+                    save_load = gensim.utils.SaveLoad()
+                    obj = save_load.load(fname=embedding_model_name_or_path)
+                    self.embedding_model = obj.wv
+                else:
+                    self.embedding_model = api.load(embedding_model_name_or_path)
 
-            self.embedding_matrix = self.get_emb_matrix(self.word_index, self.args.max_features,
-                                                        self.embedding_model)
+                self.embedding_matrix = self.get_emb_matrix(self.word_index, self.args.max_features,
+                                                            self.embedding_model)
+            else:
+                self.embedding_matrix = None
 
             MODEL_CLASSES = {
                 "cnn1D": OffensiveCNN1DModel,

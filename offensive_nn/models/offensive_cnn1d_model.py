@@ -20,5 +20,6 @@ class OffensiveCNN1DModel:
         x = layers.Dropout(0.5)(x)
         preds = layers.Dense(args.num_classes, activation="softmax", name="dense_predictions")(x)
 
-        emb.set_weights([embedding_matrix])
+        if embedding_matrix is not None:
+            emb.set_weights([embedding_matrix])
         self.model = keras.Model(int_sequences_input, preds, name="cnn1D_model")

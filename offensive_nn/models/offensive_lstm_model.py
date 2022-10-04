@@ -15,5 +15,6 @@ class OffensiveLSTMModel:
         x = layers.Dense(256, activation="relu", name="dense_1")(x)
         x = layers.Dense(args.num_classes, activation="softmax", name="dense_predictions")(x)
 
-        emb.set_weights([embedding_matrix])
+        if embedding_matrix is not None:
+            emb.set_weights([embedding_matrix])
         self.model = tf.keras.Model(inputs=inp, outputs=x, name="lstm_model")
