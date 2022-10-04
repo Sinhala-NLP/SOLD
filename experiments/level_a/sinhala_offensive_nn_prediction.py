@@ -109,7 +109,7 @@ df = pd.read_csv('confidence_result1.csv', names=column_names, header=None)
 frames = [df, df1]
 result = pd.concat([df1, df], axis=1)
 result.to_csv('one_prediction.csv')
-print((result['preds_y']).value_counts())
+# print((result['preds_y']).value_counts())
 
 new = []
 new1 = []
@@ -127,17 +127,20 @@ l2 = np.std(df['2'])
 
 df_group_posts = result.groupby('preds_y')
 
-offensive_posts = df_group_posts.get_group(0.0)
-for ix in offensive_posts.index:
-    off_prob = offensive_posts.loc[ix]['1']
-    if ((m1 + l1 > off_prob) and (m1 - l1 < off_prob)):
-        new.append(offensive_posts.loc[ix]['1'])
 
-offensive_not_posts = df_group_posts.get_group(1.0)
-for ix in offensive_not_posts.index:
-    not_off_prob = offensive_not_posts.loc[ix]['2']
-    if ((m1 + l1 > not_off_prob) and (m1 - l1 < not_off_prob)):
-        new2.append(offensive_not_posts.loc[ix]['2'])
+offensive_posts = df_group_posts.get_group(1.0)
+if offensive_posts is not None:
+    for ix in offensive_posts.index:
+        off_prob = offensive_posts.loc[ix]['1']
+        if ((m1 + l1 > off_prob) and (m1 - l1 < off_prob)):
+            new.append(offensive_posts.loc[ix]['1'])
+
+offensive_not_posts = df_group_posts.get_group(0.0)
+if offensive_not_posts is not None:
+    for ix in offensive_not_posts.index:
+        not_off_prob = offensive_not_posts.loc[ix]['2']
+        if ((m1 + l1 > not_off_prob) and (m1 - l1 < not_off_prob)):
+            new2.append(offensive_not_posts.loc[ix]['2'])
 
 df_new = result.iloc[np.where(result['1'].isin(new))]
 df_new2 = result.iloc[np.where(result['2'].isin(new2))]
