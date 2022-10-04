@@ -109,7 +109,7 @@ df = pd.read_csv('confidence_result1.csv', names=column_names, header=None)
 frames = [df, df1]
 result = pd.concat([df1, df], axis=1)
 result.to_csv('one_prediction.csv')
-print(result['preds_y'])
+print((result['preds_y']).value_counts())
 
 new = []
 new1 = []
