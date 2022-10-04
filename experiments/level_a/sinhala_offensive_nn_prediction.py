@@ -23,7 +23,7 @@ if not os.path.exists(os.path.join(TEMP_DIRECTORY, SUBMISSION_FOLDER)): os.maked
 
 parser = argparse.ArgumentParser(
     description='''evaluates multiple models  ''')
-parser.add_argument('--model_name', required=False, help='model name', default="word2vec-google-news-300")
+parser.add_argument('--model_name', required=False, help='model name', default=None)
 parser.add_argument('--lang', required=False, help='language', default="en")  # en or sin
 parser.add_argument('--algorithm', required=False, help='algorithm', default="cnn2D")  # lstm or cnn2D
 parser.add_argument('--train', required=False, help='train file', default='data/olid/olid-training-v1.0.tsv')
@@ -119,7 +119,7 @@ m2 = np.mean(df['2'])
 
 print(m1,m2)
 
-l1 = 0.15
+l1 = 0.1
 l2 = np.std(df['2'])
 
 # get all the offensive and not offensive posts from the dataset
