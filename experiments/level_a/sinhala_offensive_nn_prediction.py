@@ -109,6 +109,7 @@ df = pd.read_csv('confidence_result1.csv', names=column_names, header=None)
 frames = [df, df1]
 result = pd.concat([df1, df], axis=1)
 result.to_csv('one_prediction.csv')
+print(result['preds_y'])
 
 new = []
 new1 = []
@@ -123,15 +124,16 @@ l1 = 0.15
 l2 = np.std(df['2'])
 
 # get all the offensive and not offensive posts from the dataset
+
 df_group_posts = result.groupby('preds_y')
 
-offensive_posts = df_group_posts.get_group('OFF')
+offensive_posts = df_group_posts.get_group(0.0)
 for ix in offensive_posts.index:
     off_prob = offensive_posts.loc[ix]['1']
     if ((m1 + l1 > off_prob) and (m1 - l1 < off_prob)):
         new.append(offensive_posts.loc[ix]['1'])
 
-offensive_not_posts = df_group_posts.get_group('NOT')
+offensive_not_posts = df_group_posts.get_group(1.0)
 for ix in offensive_not_posts.index:
     not_off_prob = offensive_not_posts.loc[ix]['2']
     if ((m1 + l1 > not_off_prob) and (m1 - l1 < not_off_prob)):
