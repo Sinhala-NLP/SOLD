@@ -4,6 +4,8 @@ import random
 import warnings
 from multiprocessing import cpu_count
 
+from sklearn.preprocessing import LabelEncoder
+
 import numpy as np
 import pandas as pd
 import torch
@@ -478,16 +480,16 @@ class ExplainableModel(ClassificationModel):
             temp_read.tokens = temp_read.tokens.str.split()
             temp_read.rationales = temp_read.rationales.apply(lambda x: ast.literal_eval(x))
             temp_read['final_label'] = temp_read['label']
-            test_data = get_test_data(temp_read, params, message='text')
+            test_data = get_test_data(temp_read, params, self.tokenizer, message='text')
             eval_examples = [
                 InputExample(i, text, None, label)
-                for i, (text, label) in enumerate(zip(test_data["Text"].astype(str), test_data["Label"]))
+                for i, (text, label) in enumerate(zip(test_data["Raw Text List"].astype(str), test_data["Label"]))
             ]
         elif (use_ext_df):
             # eval_df['labels'] = encode(eval_df["labels"])
             eval_examples = [
                 InputExample(i, text, None, label)
-                for i, (text, label) in enumerate(zip(test_data["text"].astype(str), test_data["labels"]))
+                for i, (text, label) in enumerate(zip(test_data["Raw Text List"].astype(str), test_data["Label"]))
             ]
         else:
             eval_examples = [
@@ -552,7 +554,7 @@ class ExplainableModel(ClassificationModel):
             label_ids = b_labels.detach().cpu().numpy()  # out_label_ids
 
             attention_vectors = np.mean(outputs[1][11][:, :, 0, :].detach().cpu().numpy(), axis=1)
-       
+
             # Calculate the accuracy for this batch of test sentences.
             # Accumulate the total accuracy.
             pred_labels += list(np.argmax(logits, axis=1).flatten())
@@ -591,9 +593,9 @@ class ExplainableModel(ClassificationModel):
         for post_id, attention, logits, pred, ground_truth in zip(post_id_all, attention_vector_final, logits_all_final,
                                                                   pred_labels, true_labels):
             temp = {}
-            # encoder = LabelEncoder()
-            # encoder.classes_ = np.load(params['class_names'], allow_pickle=True)
-            pred_label = encode(pred)
+            encoder = LabelEncoder()
+            encoder.classes_ = np.load(params['class_names'], allow_pickle=True)
+            pred_label = encoder.inverse_transform([pred])[0]
 
             temp["annotation_id"] = post_id
             temp["classification"] = pred_label

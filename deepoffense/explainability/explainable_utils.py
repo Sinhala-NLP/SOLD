@@ -17,79 +17,82 @@ import string
 import re
 import os
 
+
 #### Few helper functions to convert attention vectors in 0 to 1 scale. While softmax converts all the values such that their sum lies between 0 --> 1. Sigmoid converts each value in the vector in the range 0 -> 1.
-def encodeData(dataframe,vocab,params):
-    tuple_new_data=[]    
-    print(dataframe.head())
-    for index,row in tqdm(dataframe.iterrows(),total=len(dataframe)):
-        if(params['bert_tokens']):
-            tuple_new_data.append((row['Text'],row['Attention'],row['Label']))
-        else:   
-            list_token_id=[]
+def encodeData(dataframe, vocab, params):
+    tuple_new_data = []
+    for index, row in tqdm(dataframe.iterrows(), total=len(dataframe)):
+        if (params['bert_tokens']):
+            tuple_new_data.append((row['Text'], row['Attention'], row['Label']))
+        else:
+            list_token_id = []
             for word in row['Text']:
                 try:
-                    index=vocab.stoi[word]
+                    index = vocab.stoi[word]
                 except KeyError:
-                    index=vocab.stoi['unk']
+                    index = vocab.stoi['unk']
                 list_token_id.append(index)
-            tuple_new_data.append((list_token_id,row['Attention'],row['Label']))
+            tuple_new_data.append((list_token_id, row['Attention'], row['Label']))
     return tuple_new_data
 
+
 def set_name(params):
-    file_name='data/Total_data'
-    if(params['bert_tokens']):
-        file_name+='_bert'
+    file_name = 'data/Total_data'
+    if (params['bert_tokens']):
+        file_name += '_bert'
     else:
-        file_name+='_normal'
-    
-    file_name+='_'+params['type_attention']+'_'+str(params['variance'])+'_'+str(params['max_length'])
-    if(params['decay']):
-        file_name+='_'+params['method']+'_'+str(params['window'])+'_'+str(params['alpha']) +'_'+str(params['p_value'])    
-    file_name+='_'+str(params['num_classes'])+'.pickle'
+        file_name += '_normal'
+
+    file_name += '_' + params['type_attention'] + '_' + str(params['variance']) + '_' + str(params['max_length'])
+    if (params['decay']):
+        file_name += '_' + params['method'] + '_' + str(params['window']) + '_' + str(params['alpha']) + '_' + str(
+            params['p_value'])
+    file_name += '_' + str(params['num_classes']) + '.pickle'
     return file_name
 
+
 def collect_data(params):
-    if(params['bert_tokens']):
+    if (params['bert_tokens']):
         print('Loading BERT tokenizer...')
         tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased', do_lower_case=False)
     else:
-        tokenizer=None
+        tokenizer = None
     # TODO: Add a fork here
     # data_all_labelled=get_annotated_data(params)
-    data_all_labelled = pd.read_csv(params['data_file'], sep="\t")#, nrows=10)
+    data_all_labelled = pd.read_csv(params['data_file'], sep="\t")  # , nrows=10)
     data_all_labelled.tokens = data_all_labelled.tokens.str.split()
     data_all_labelled.rationales = data_all_labelled.rationales.apply(lambda x: ast.literal_eval(x))
     data_all_labelled['final_label'] = data_all_labelled['label']
-    train_data=get_test_data(data_all_labelled,params,tokenizer)
+    train_data = get_training_data(data_all_labelled, params, tokenizer)
     return train_data
 
+
 def createDatasetSplit(params):
-    filename=set_name(params)
+    filename = set_name(params)
     if path.exists(filename):
         ##### REMOVE LATER ######
-        #dataset=collect_data(params)
+        # dataset=collect_data(params)
         pass
     else:
         params['data_file'] = '/content/HateXplain-copy/Data/SOLD_train_annotated.tsv'
-        
-        
-    if(path.exists(filename[:-7])):
-        with open(filename[:-7]+'/train_data.pickle', 'rb') as f:
+
+    if (path.exists(filename[:-7])):
+        with open(filename[:-7] + '/train_data.pickle', 'rb') as f:
             X_train = pickle.load(f)
-        with open(filename[:-7]+'/val_data.pickle', 'rb') as f:
+        with open(filename[:-7] + '/val_data.pickle', 'rb') as f:
             X_val = pickle.load(f)
-        with open(filename[:-7]+'/test_data.pickle', 'rb') as f:
+        with open(filename[:-7] + '/test_data.pickle', 'rb') as f:
             X_test = pickle.load(f)
-        if(params['bert_tokens']==False):
-            with open(filename[:-7]+'/vocab_own.pickle', 'rb') as f:
-                vocab_own=pickle.load(f)
-    
-        
+        if (params['bert_tokens'] == False):
+            with open(filename[:-7] + '/vocab_own.pickle', 'rb') as f:
+                vocab_own = pickle.load(f)
+
+
     else:
-        if(params['bert_tokens']==False):
+        if (params['bert_tokens'] == False):
             word2vecmodel1 = KeyedVectors.load("Data/word2vec.model")
             vector = word2vecmodel1['easy']
-            assert(len(vector)==300)
+            assert (len(vector) == 300)
 
         params['data_file'] = '/content/HateXplain-copy/Data/SOLD_train_annotated.tsv'
         X_train = collect_data(params)
@@ -101,115 +104,117 @@ def createDatasetSplit(params):
         X_val = collect_data(params)
 
         params['data_file'] = '/content/HateXplain-copy/Data/SOLD_train_annotated.tsv'
-        
+
         # TODO: Add datafiles later
-        if(params['bert_tokens']):
-            vocab_own=None    
-            vocab_size =0
-            padding_idx =0
+        if (params['bert_tokens']):
+            vocab_own = None
+            vocab_size = 0
+            padding_idx = 0
         else:
-            vocab_own=Vocab_own(X_train,word2vecmodel1)
+            vocab_own = Vocab_own(X_train, word2vecmodel1)
             vocab_own.create_vocab()
-            padding_idx=vocab_own.stoi['<pad>']
-            vocab_size=len(vocab_own.vocab)
+            padding_idx = vocab_own.stoi['<pad>']
+            vocab_size = len(vocab_own.vocab)
 
-        X_train=encodeData(X_train,vocab_own,params)
-        X_val=encodeData(X_val,vocab_own,params)
-        X_test=encodeData(X_test,vocab_own,params)
-        
-        print("total dataset size:", len(X_train)+len(X_val)+len(X_test))
+        X_train = encodeData(X_train, vocab_own, params)
+        X_val = encodeData(X_val, vocab_own, params)
+        X_test = encodeData(X_test, vocab_own, params)
 
-        
+        print("total dataset size:", len(X_train) + len(X_val) + len(X_test))
+
         os.mkdir(filename[:-7])
-        with open(filename[:-7]+'/train_data.pickle', 'wb') as f:
+        with open(filename[:-7] + '/train_data.pickle', 'wb') as f:
             pickle.dump(X_train, f)
 
-        with open(filename[:-7]+'/val_data.pickle', 'wb') as f:
+        with open(filename[:-7] + '/val_data.pickle', 'wb') as f:
             pickle.dump(X_val, f)
-        with open(filename[:-7]+'/test_data.pickle', 'wb') as f:
+        with open(filename[:-7] + '/test_data.pickle', 'wb') as f:
             pickle.dump(X_test, f)
-        if(params['bert_tokens']==False):
-            with open(filename[:-7]+'/vocab_own.pickle', 'wb') as f:
+        if (params['bert_tokens'] == False):
+            with open(filename[:-7] + '/vocab_own.pickle', 'wb') as f:
                 pickle.dump(vocab_own, f)
-    
-    if(params['bert_tokens']==False):
-        return X_train,X_val,X_test,vocab_own
+
+    if (params['bert_tokens'] == False):
+        return X_train, X_val, X_test, vocab_own
     else:
-        return X_train,X_val,X_test
+        return X_train, X_val, X_test
+
 
 class Vocab_own():
-    def __init__(self,dataframe, model):
-        self.itos={}
-        self.stoi={}
-        self.vocab={}
-        self.embeddings=[]
-        self.dataframe=dataframe
-        self.model=model
-    
+    def __init__(self, dataframe, model):
+        self.itos = {}
+        self.stoi = {}
+        self.vocab = {}
+        self.embeddings = []
+        self.dataframe = dataframe
+        self.model = model
+
     ### load embedding given a word and unk if word not in vocab
     ### input: word
     ### output: embedding,word or embedding for unk, unk
-    def load_embeddings(self,word):
+    def load_embeddings(self, word):
         try:
-            return self.model[word],word
+            return self.model[word], word
         except KeyError:
-            return self.model['unk'],'unk'
-    
+            return self.model['unk'], 'unk'
+
     ### create vocab,stoi,itos,embedding_matrix
     ### input: **self
     ### output: updates class members
     def create_vocab(self):
-        count=1
-        for index,row in tqdm(self.dataframe.iterrows(),total=len(self.dataframe)):
+        count = 1
+        for index, row in tqdm(self.dataframe.iterrows(), total=len(self.dataframe)):
             for word in row['Text']:
-                vector,word=self.load_embeddings(word)      
+                vector, word = self.load_embeddings(word)
                 try:
-                    self.vocab[word]+=1
+                    self.vocab[word] += 1
                 except KeyError:
-                    if(word=='unk'):
+                    if (word == 'unk'):
                         print(word)
-                    self.vocab[word]=1
-                    self.stoi[word]=count
-                    self.itos[count]=word
+                    self.vocab[word] = 1
+                    self.stoi[word] = count
+                    self.itos[count] = word
                     self.embeddings.append(vector)
-                    count+=1
-        self.vocab['<pad>']=1
-        self.stoi['<pad>']=0
-        self.itos[0]='<pad>'
+                    count += 1
+        self.vocab['<pad>'] = 1
+        self.stoi['<pad>'] = 0
+        self.itos[0] = '<pad>'
         self.embeddings.append(np.zeros((300,), dtype=float))
-        self.embeddings=np.array(self.embeddings)
+        self.embeddings = np.array(self.embeddings)
         print(self.embeddings.shape)
+
 
 text_processor = TextPreProcessor(
     # terms that will be normalized
     normalize=['url', 'email', 'percent', 'money', 'phone', 'user',
-        'time', 'date', 'number'],
+               'time', 'date', 'number'],
     # terms that will be annotated
     fix_html=True,  # fix HTML tokens
     annotate={"hashtag", "allcaps", "elongated", "repeated",
-        'emphasis', 'censored'},
-    # corpus from which the word statistics are going to be used 
-    # for word segmentation 
-    segmenter="twitter", 
-    
-    # corpus from which the word statistics are going to be used 
+              'emphasis', 'censored'},
+    # corpus from which the word statistics are going to be used
+    # for word segmentation
+    segmenter="twitter",
+
+    # corpus from which the word statistics are going to be used
     # for spell correction
-    #corrector="twitter", 
-    
+    # corrector="twitter",
+
     unpack_hashtags=True,  # perform word segmentation on hashtags
     unpack_contractions=True,  # Unpack contractions (can't -> can not)
     spell_correct_elong=False,  # spell correction for elongated words
-    
+
     # select a tokenizer. You can use SocialTokenizer, or pass your own
     # the tokenizer, should take as input a string and return a list of tokens
     tokenizer=SocialTokenizer(lowercase=True).tokenize,
-    
+
     # list of dictionaries, for replacing tokens extracted from the text,
     # with other expressions. You can pass more than one dictionaries.
     dicts=[emoticons]
 )
 
-def custom_tokenize(sent,tokenizer,max_length=512):
+
+def custom_tokenize(sent, tokenizer, max_length=512):
     # `encode` will:
     #   (1) Tokenize the sentence.
     #   (2) Prepend the `[CLS]` token to the start.
@@ -218,44 +223,47 @@ def custom_tokenize(sent,tokenizer,max_length=512):
     try:
 
         encoded_sent = tokenizer.encode(
-                            sent,                      # Sentence to encode.
-                            add_special_tokens = False, # Add '[CLS]' and '[SEP]'
-                            #max_length = max_length,
-                            # This function also supports truncation and conversion
-                            # to pytorch tensors, but we need to do padding, so we
-                            # can't use these features :( .
-                            #max_length = 128,          # Truncate all sentences.
-                            #return_tensors = 'pt',     # Return pytorch tensors.
-                       )
+            sent,  # Sentence to encode.
+            add_special_tokens=False,  # Add '[CLS]' and '[SEP]'
+            # max_length = max_length,
+            # This function also supports truncation and conversion
+            # to pytorch tensors, but we need to do padding, so we
+            # can't use these features :( .
+            # max_length = 128,          # Truncate all sentences.
+            # return_tensors = 'pt',     # Return pytorch tensors.
+        )
 
         # Add the encoded sentence to the list.
 
     except ValueError:
         encoded_sent = tokenizer.encode(
-                            ' ',                      # Sentence to encode.
-                            add_special_tokens = False, # Add '[CLS]' and '[SEP]'
-                            max_length = max_length,
-                    
-                       )
-          ### decide what to later
+            ' ',  # Sentence to encode.
+            add_special_tokens=False,  # Add '[CLS]' and '[SEP]'
+            max_length=max_length,
+
+        )
+        ### decide what to later
 
     return encoded_sent
 
-def ek_extra_preprocess(text,params,tokenizer):
-    remove_words=['<allcaps>','</allcaps>','<hashtag>','</hashtag>','<elongated>','<emphasis>','<repeated>','\'','s']
-    word_list=text_processor.pre_process_doc(text)
-    if(params['include_special']):
+
+def ek_extra_preprocess(text, params, tokenizer):
+    remove_words = ['<allcaps>', '</allcaps>', '<hashtag>', '</hashtag>', '<elongated>', '<emphasis>', '<repeated>',
+                    '\'', 's']
+    word_list = text_processor.pre_process_doc(text)
+    if (params['include_special']):
         pass
     else:
-        word_list=list(filter(lambda a: a not in remove_words, word_list)) 
-    if(params['bert_tokens']):
-        sent=" ".join(word_list)
-        sent = re.sub(r"[<\*>]", " ",sent)
-        sub_word_list = custom_tokenize(sent,tokenizer)
+        word_list = list(filter(lambda a: a not in remove_words, word_list))
+    if (params['bert_tokens']):
+        sent = " ".join(word_list)
+        sent = re.sub(r"[<\*>]", " ", sent)
+        sub_word_list = custom_tokenize(sent, tokenizer)
         return sub_word_list
-    else:            
-        word_list=[token for token in word_list if token not in string.punctuation]
+    else:
+        word_list = [token for token in word_list if token not in string.punctuation]
         return word_list
+
 
 ##### We mostly use softmax
 def softmax(x):
@@ -332,12 +340,11 @@ def returnMask(row, params, tokenizer):
             word_tokens = []
             word_mask = []
 
-        # for i in range(0, len(string_parts)):
-        #     print(string_parts[i])
-        #     tokens = ek_extra_preprocess(" ".join(string_parts[i]), params, tokenizer)
-        #     masks = [mask_pos[i]] * len(tokens)
-        #     word_tokens += tokens
-        #     word_mask += masks
+        for i in range(0, len(string_parts)):
+            tokens = ek_extra_preprocess(" ".join(string_parts[i]), params, tokenizer)
+            masks = [mask_pos[i]] * len(tokens)
+            word_tokens += tokens
+            word_mask += masks
 
         if (params['bert_tokens']):
             ### always post truncation
@@ -451,33 +458,77 @@ def decay(old_distribution, params):
     return new_distribution
 
 
-def get_test_data(data, params, tokenizer=None, message='text'):
+def get_test_data(data, params, tokenizer = None, message='text'):
     '''input: data is a dataframe text ids labels column only'''
     '''output: training data in the columns post_id,text (tokens) , attentions (normal) and labels'''
-
     post_ids_list = []
     text_list = []
     attention_list = []
     label_list = []
+    raw_text_list = []
     print('total_data', len(data))
     for index, row in tqdm(data.iterrows(), total=len(data)):
         post_id = row['post_id']
-        annotation = row['label']
+        annotation = row['final_label']
         text = row['text']
         tokens_all, attention_masks = returnMask(row, params, tokenizer)
         attention_vector = aggregate_attention(attention_masks, row, params)
         attention_list.append(attention_vector)
-        # text_list.append(tokens_all)
-        text_list.append(text)
+        text_list.append(tokens_all)
         label_list.append(annotation)
         post_ids_list.append(post_id)
+        raw_text_list.append(text)
 
     # Calling DataFrame constructor after zipping
     # both lists, with columns specified
-    # TODO: verify if passing text instead of tokens is okay
-    training_data = pd.DataFrame(list(zip(post_ids_list, text_list, attention_list, label_list)),
-                                 columns=['Post_id', 'Text', 'Attention', 'Label'])
+    training_data = pd.DataFrame(list(zip(post_ids_list, text_list, attention_list, label_list, raw_text_list)),
+                                 columns=['Post_id', 'Text', 'Attention', 'Label', 'Raw Text List'])
+    print(training_data.head())
+    return training_data
 
+
+def get_training_data(data, params, tokenizer):
+    '''input: data is a dataframe text ids attentions labels column only'''
+    '''output: training data in the columns post_id,text, attention and labels '''
+
+    majority = params['majority']
+    post_ids_list = []
+    text_list = []
+    attention_list = []
+    label_list = []
+    count = 0
+    count_confused = 0
+    raw_text_list = []
+    print('total_data', len(data))
+    for index, row in tqdm(data.iterrows(), total=len(data)):
+        # print(row)
+        # print(params)
+        text = row['text']
+        post_id = row['post_id']
+
+        # annotation_list=[row['label'],row['label2'],row['label3']]
+        annotation = row['label']
+
+        if (annotation != 'undecided'):
+            tokens_all, attention_masks = returnMask(row, params, tokenizer)
+            attention_vector = aggregate_attention(attention_masks, row, params)
+            attention_list.append(attention_vector)
+            text_list.append(tokens_all)
+            label_list.append(annotation)
+            post_ids_list.append(post_id)
+            raw_text_list.append(text)
+        else:
+            count_confused += 1
+
+    print("attention_error:", count)
+    print("no_majority:", count_confused)
+    # Calling DataFrame constructor after zipping
+    # both lists, with columns specified
+    training_data = pd.DataFrame(list(zip(post_ids_list, text_list, attention_list, label_list, raw_text_list)),
+                                 columns=['Post_id', 'Text', 'Attention', 'Label', 'Raw Text List'])
+
+    filename = set_name(params)
+    training_data.to_pickle(filename)
     return training_data
 
 
@@ -716,8 +767,8 @@ def convert_example_to_feature(
                                  [0 if mask_padding_with_zero else 1] * padding_length
                          ) + input_mask
             attention_mask = (
-                                 [0 if mask_padding_with_zero else 1] * padding_length
-                         ) + attention_mask
+                                     [0 if mask_padding_with_zero else 1] * padding_length
+                             ) + attention_mask
             segment_ids = ([pad_token_segment_id] * padding_length) + segment_ids
         else:
             input_ids = input_ids + ([pad_token] * padding_length)
@@ -752,7 +803,7 @@ def convert_example_to_feature(
             input_mask=input_mask,
             segment_ids=segment_ids,
             label_id=example.label,
-            attention_mask = attention_mask,
+            attention_mask=attention_mask,
             bboxes=bboxes,
         )
     else:
@@ -760,9 +811,10 @@ def convert_example_to_feature(
             input_ids=input_ids,
             input_mask=input_mask,
             segment_ids=segment_ids,
-            attention_mask = attention_mask,
+            attention_mask=attention_mask,
             label_id=example.label,
         )
+
 
 def convert_example_to_feature_sliding_window(
         example_row,
@@ -891,6 +943,7 @@ def convert_example_to_feature_sliding_window(
 
     return input_features
 
+
 class InputFeaturesWithRationales(object):
     """A single set of features of data."""
 
@@ -940,20 +993,22 @@ def convert_data(test_data, params, list_dict, rational_present=True, topk=2):
                 if (i not in topk_indices):
                     new_text.append(row['Text'][i])
                     new_attention.append(row['Attention'][i])
-        test_data_modified.append([row['Post_id'], new_text, new_attention, row['Label']])
+        test_data_modified.append([row['Post_id'], new_text, new_attention, row['Label'], row['Raw Text List']])
 
     df = pd.DataFrame(test_data_modified, columns=test_data.columns)
     return df
 
+
 def softmax(x):
     """Compute softmax values for each sets of scores in x."""
     e_x = np.exp(x - np.max(x))
-    temp=e_x / e_x.sum(axis=0) # only difference
-    
-    if np.isnan(temp).any()==True:
-        return [0.0,1.0,0.0]
+    temp = e_x / e_x.sum(axis=0)  # only difference
+
+    if np.isnan(temp).any() == True:
+        return [0.0, 1.0, 0.0]
     else:
-        return temp    
+        return temp
+
 
 def format_time(elapsed):
     '''
@@ -961,7 +1016,7 @@ def format_time(elapsed):
     '''
     # Round to the nearest second.
     elapsed_rounded = int(round((elapsed)))
-    
+
     # Format as hh:mm:ss
     return str(datetime.timedelta(seconds=elapsed_rounded))
-  
+
