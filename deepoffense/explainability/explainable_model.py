@@ -5,7 +5,15 @@ import warnings
 from multiprocessing import cpu_count
 
 import numpy as np
+import pandas as pd
 import torch
+from deepoffense.util.label_converter import decode, encode
+from deepoffense.common.deepoffense_config import LANGUAGE_FINETUNE, TEMP_DIRECTORY, SUBMISSION_FOLDER, \
+    MODEL_TYPE, MODEL_NAME, language_modeling_args, args, SEED, RESULT_FILE
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, recall_score, precision_score
+from sklearn.utils import class_weight
+import ast
+import json
 from transformers import (
     WEIGHTS_NAME,
     AlbertConfig,
@@ -31,19 +39,23 @@ from transformers import (
     XLMTokenizer,
     XLNetConfig,
     XLNetTokenizer,
-    AutoConfig, 
-    AutoModelForSequenceClassification, 
+    AutoConfig,
+    AutoModelForSequenceClassification,
     AutoTokenizer,
 )
 
-
+from deepoffense.util.label_converter import decode, encode
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
 from deepoffense.classification.classification_utils import LazyClassificationDataset, InputExample, \
     convert_examples_to_features, sweep_config_to_sweep_values
 
+from deepoffense.explainability.explainable_utils import get_test_data, convert_data, softmax, encodeData, \
+    createDatasetSplit
+
 from deepoffense.classification import ClassificationModel
 from deepoffense.classification.classification_utils import sweep_config_to_sweep_values
-from deepoffense.classification.transformer_models.args.model_args import MultiLabelClassificationArgs, ClassificationArgs
+from deepoffense.classification.transformer_models.args.model_args import MultiLabelClassificationArgs, \
+    ClassificationArgs
 from deepoffense.custom_models.models import AlbertForMultiLabelSequenceClassification, \
     BertweetForMultiLabelSequenceClassification, CamembertForMultiLabelSequenceClassification, \
     DistilBertForMultiLabelSequenceClassification, ElectraForMultiLabelSequenceClassification, \
@@ -114,16 +126,16 @@ logger = logging.getLogger(__name__)
 
 class ExplainableModel(ClassificationModel):
     def __init__(
-        self,
-        model_type,
-        model_name,
-        num_labels=None,
-        weight=None,
-        args=None,
-        use_cuda=True,
-        cuda_device=-1,
-        onnx_execution_provider=None,
-        **kwargs,
+            self,
+            model_type,
+            model_name,
+            num_labels=None,
+            weight=None,
+            args=None,
+            use_cuda=True,
+            cuda_device=-1,
+            onnx_execution_provider=None,
+            **kwargs,
     ):
 
         """
@@ -186,7 +198,6 @@ class ExplainableModel(ClassificationModel):
                 RobertaForSequenceClassification,
                 RobertaTokenizerFast,
             ),
-
 
             "xlm": (XLMConfig, XLMForSequenceClassification, XLMTokenizer),
             "xlmroberta": (
@@ -277,27 +288,27 @@ class ExplainableModel(ClassificationModel):
                 model_path = os.path.join(model_name, "onnx_model.onnx")
                 self.model = InferenceSession(model_path, options, providers=[onnx_execution_provider])
         else:
-          if not self.args.quantized_model:
+            if not self.args.quantized_model:
                 if self.weight:
                     self.model = model_class.from_pretrained(
                         model_name, config=self.config, weight=torch.Tensor(self.weight).to(self.device), **kwargs,
                     )
                 else:
                     self.model = model_class.from_pretrained(model_name, config=self.config, **kwargs)
-          else:
-              quantized_weights = torch.load(os.path.join(model_name, "pytorch_model.bin"))
-              if self.weight:
-                  self.model = model_class.from_pretrained(
-                      None,
-                      config=self.config,
-                      state_dict=quantized_weights,
-                      weight=torch.Tensor(self.weight).to(self.device),
-                  )
-              else:
-                  self.model = model_class.from_pretrained(None, config=self.config, state_dict=quantized_weights)
+            else:
+                quantized_weights = torch.load(os.path.join(model_name, "pytorch_model.bin"))
+                if self.weight:
+                    self.model = model_class.from_pretrained(
+                        None,
+                        config=self.config,
+                        state_dict=quantized_weights,
+                        weight=torch.Tensor(self.weight).to(self.device),
+                    )
+                else:
+                    self.model = model_class.from_pretrained(None, config=self.config, state_dict=quantized_weights)
 
         if self.args.dynamic_quantize:
-                self.model = torch.quantization.quantize_dynamic(self.model, {torch.nn.Linear}, dtype=torch.qint8)
+            self.model = torch.quantization.quantize_dynamic(self.model, {torch.nn.Linear}, dtype=torch.qint8)
         if self.args.quantized_model:
             self.model.load_state_dict(quantized_weights)
         if self.args.dynamic_quantize:
@@ -307,7 +318,7 @@ class ExplainableModel(ClassificationModel):
 
         if not use_cuda:
             self.args.fp16 = False
-        
+
         if self.args.fp16:
             try:
                 from torch.cuda import amp
@@ -333,31 +344,42 @@ class ExplainableModel(ClassificationModel):
                 " fails when using multiprocessing for feature conversion."
             )
             self.args.use_multiprocessing = False
-            
+
         if self.args.wandb_project and not wandb_available:
             warnings.warn(
                 "wandb_project specified but wandb is not available. Wandb disabled."
             )
             self.args.wandb_project = None
 
-        self.weight = None  
-        #TODO: compara with classification model
+        self.weight = None
+        # TODO: compara with classification model
 
     def _load_model_args(self, input_dir):
-        args = ClassificationArgs() #TODO: pass explainability args as generic based on each model
+        args = ClassificationArgs()  # TODO: pass explainability args as generic based on each model
         args.load(input_dir)
         return args
 
+    def _get_inputs_dict(self, batch):
+        inputs = {
+            "input_ids": batch[0],
+            "input_modal": batch[2],
+            "attention_mask": batch[1],
+            "modal_start_tokens": batch[3],
+            "modal_end_tokens": batch[4],
+        }
+
+        return inputs
+
     def train_model(
-        self,
-        train_df,
-        multi_label=False,
-        output_dir=None,
-        show_running_loss=True,
-        args=None,
-        eval_df=None,
-        verbose=True,
-        **kwargs,
+            self,
+            train_df,
+            multi_label=False,
+            output_dir=None,
+            show_running_loss=True,
+            args=None,
+            eval_df=None,
+            verbose=True,
+            **kwargs,
     ):
         return super().train_model(
             train_df,
@@ -370,59 +392,67 @@ class ExplainableModel(ClassificationModel):
             **kwargs,
         )
 
-    def eval_model(
-        self, 
-        eval_df, 
-        multi_label=False, 
-        output_dir=None, 
-        verbose=True, 
-        silent=False, 
-        wandb_log=True, 
-        **kwargs
+    def standaloneEval_with_rational(
+            self,
+            params,
+            test_data=None,
+            extra_data_path=None,
+            topk=2,
+            use_ext_df=False,
+            multi_label=False,
+            output_dir=None,
+            verbose=True,
+            silent=False,
+            wandb_log=True,
+            **kwargs
     ):
 
-      """
-        Evaluates the model on eval_df. Saves results to output_dir.
-        Args:
-            eval_df: Pandas Dataframe containing at least two columns. If the Dataframe has a header, it should contain a 'text' and a 'labels' column. If no header is present,
-            the Dataframe should contain at least two columns, with the first column containing the text, and the second column containing the label. The model will be evaluated on this Dataframe.
-            output_dir: The directory where model files will be saved. If not given, self.args.output_dir will be used.
-            verbose: If verbose, results will be printed to the console on completion of evaluation.
-            silent: If silent, tqdm progress bars will be hidden.
-            wandb_log: If True, evaluation results will be logged to wandb.
-            **kwargs: Additional metrics that should be used. Pass in the metrics as keyword arguments (name of metric: function to use). E.g. f1=sklearn.metrics.f1_score.
-                        A metric function should take in two parameters. The first parameter will be the true labels, and the second parameter will be the predictions.
-        Returns:
-            result: Dictionary containing evaluation results.
-            model_outputs: List of model outputs for each row in eval_df
-            wrong_preds: List of InputExample objects corresponding to each incorrect prediction by the model
-        """  # noqa: ignore flake8"
+        """
+          Evaluates the model on eval_df. Saves results to output_dir.
+          Args:
+              eval_df: Pandas Dataframe containing at least two columns. If the Dataframe has a header, it should contain a 'text' and a 'labels' column. If no header is present,
+              the Dataframe should contain at least two columns, with the first column containing the text, and the second column containing the label. The model will be evaluated on this Dataframe.
+              output_dir: The directory where model files will be saved. If not given, self.args.output_dir will be used.
+              verbose: If verbose, results will be printed to the console on completion of evaluation.
+              silent: If silent, tqdm progress bars will be hidden.
+              wandb_log: If True, evaluation results will be logged to wandb.
+              **kwargs: Additional metrics that should be used. Pass in the metrics as keyword arguments (name of metric: function to use). E.g. f1=sklearn.metrics.f1_score.
+                          A metric function should take in two parameters. The first parameter will be the true labels, and the second parameter will be the predictions.
+          Returns:
+              result: Dictionary containing evaluation results.
+              model_outputs: List of model outputs for each row in eval_df
+              wrong_preds: List of InputExample objects corresponding to each incorrect prediction by the model
+          """  # noqa: ignore flake8"
 
-      if not output_dir:
-          output_dir = self.args.output_dir
+        if not output_dir:
+            output_dir = self.args.output_dir
 
-      self._move_model_to_device()
+        self._move_model_to_device()
 
-      result, model_outputs, wrong_preds = self.evaluate(
-          eval_df, output_dir, multi_label=multi_label, verbose=verbose, silent=silent, wandb_log=wandb_log, **kwargs
-      )
-      self.results.update(result)
+        return self.evaluate(
+            output_dir, params,
+            test_data,
+            extra_data_path,
+            topk,
+            use_ext_df,
+            multi_label=multi_label, verbose=verbose, silent=silent, wandb_log=wandb_log, **kwargs
+        )
 
-      if verbose:
-          logger.info(self.results)
-
-      return result, model_outputs, wrong_preds
-
+    # TODO: rename
     def evaluate(
-        self, 
-        eval_df, 
-        output_dir, 
-        multi_label=False, 
-        prefix="", 
-        verbose=True, 
-        silent=False, 
-        wandb_log=True,
-        **kwargs
+            self,
+            output_dir,
+            params,
+            test_data=None,
+            extra_data_path=None,
+            topk=2,
+            use_ext_df=False,
+            multi_label=False,
+            prefix="",
+            verbose=True,
+            silent=False,
+            wandb_log=True,
+            **kwargs
     ):
 
         """
@@ -432,69 +462,43 @@ class ExplainableModel(ClassificationModel):
 
         model = self.model
         args = self.args
+        print(args)
         eval_output_dir = output_dir
 
+        train, val, test = createDatasetSplit(params)
+        vocab_own = None
+
         results = {}
-        if isinstance(eval_df, str) and self.args.lazy_loading:
-            if self.args.model_type == "layoutlm":
-                raise NotImplementedError("Lazy loading is not implemented for LayoutLM models")
-            eval_dataset = LazyClassificationDataset(eval_df, self.tokenizer, self.args)
-            eval_examples = None
+
+        # if(extra_data_path is None):
+        #   my_df = pd.DataFrame()
+
+        if (extra_data_path != None):
+            temp_read = pd.read_csv(params['data_file'], sep="\t")
+            temp_read.tokens = temp_read.tokens.str.split()
+            temp_read.rationales = temp_read.rationales.apply(lambda x: ast.literal_eval(x))
+            temp_read['final_label'] = temp_read['label']
+            test_data = get_test_data(temp_read, params, message='text')
+            eval_examples = [
+                InputExample(i, text, None, label)
+                for i, (text, label) in enumerate(zip(test_data["Text"].astype(str), test_data["Label"]))
+            ]
+        elif (use_ext_df):
+            # eval_df['labels'] = encode(eval_df["labels"])
+            eval_examples = [
+                InputExample(i, text, None, label)
+                for i, (text, label) in enumerate(zip(test_data["text"].astype(str), test_data["labels"]))
+            ]
         else:
-            if self.args.lazy_loading:
-                raise ValueError("Input must be given as a path to a file when using lazy loading")
+            eval_examples = [
+                InputExample(i, text, None, label)
+                for i, (text, label) in enumerate(zip(test["text"].astype(str), test["labels"]))
+            ]
 
-            if "text" in eval_df.columns and "labels" in eval_df.columns:
-                if self.args.model_type == "layoutlm":
-                    eval_examples = [
-                        InputExample(i, text, None, label, x0, y0, x1, y1)
-                        for i, (text, label, x0, y0, x1, y1) in enumerate(
-                            zip(
-                                eval_df["text"].astype(str),
-                                eval_df["labels"],
-                                eval_df["x0"],
-                                eval_df["y0"],
-                                eval_df["x1"],
-                                eval_df["y1"],
-                            )
-                        )
-                    ]
-                else:
-                    eval_examples = [
-                        InputExample(i, text, None, label)
-                        for i, (text, label) in enumerate(zip(eval_df["text"].astype(str), eval_df["labels"]))
-                    ]
-            elif "text_a" in eval_df.columns and "text_b" in eval_df.columns:
-                if self.args.model_type == "layoutlm":
-                    raise ValueError("LayoutLM cannot be used with sentence-pair tasks")
-                else:
-                    eval_examples = [
-                        InputExample(i, text_a, text_b, label)
-                        for i, (text_a, text_b, label) in enumerate(
-                            zip(eval_df["text_a"].astype(str), eval_df["text_b"].astype(str), eval_df["labels"])
-                        )
-                    ]
-            else:
-                warnings.warn(
-                    "Dataframe headers not specified. Falling back to using column 0 as text and column 1 as labels."
-                )
-                eval_examples = [
-                    InputExample(i, text, None, label)
-                    for i, (text, label) in enumerate(zip(eval_df.iloc[:, 0], eval_df.iloc[:, 1]))
-                ]
+        eval_dataloader = self.load_and_cache_examples(eval_examples, evaluate=True, verbose=verbose,
+                                                       silent=silent)
 
-            if args.sliding_window:
-                eval_dataset, window_counts = self.load_and_cache_examples(
-                    eval_examples, evaluate=True, verbose=verbose, silent=silent
-                )
-            else:
-                eval_dataset = self.load_and_cache_examples(
-                    eval_examples, evaluate=True, verbose=verbose, silent=silent
-                )
         # os.makedirs(eval_output_dir, exist_ok=True)
-
-        eval_sampler = SequentialSampler(eval_dataset)
-        eval_dataloader = DataLoader(eval_dataset, sampler=eval_sampler, batch_size=args.eval_batch_size)
 
         if args.n_gpu > 1:
             model = torch.nn.DataParallel(model)
@@ -502,140 +506,241 @@ class ExplainableModel(ClassificationModel):
         eval_loss = 0.0
         nb_eval_steps = 0
         n_batches = len(eval_dataloader)
-        preds = np.empty((len(eval_dataset), self.num_labels))
+        preds = np.empty((len(test), self.num_labels))
         if multi_label:
-            out_label_ids = np.empty((len(eval_dataset), self.num_labels))
+            out_label_ids = np.empty((len(test), self.num_labels))
         else:
-            out_label_ids = np.empty((len(eval_dataset)))
+            out_label_ids = np.empty((len(test)))
         model.eval()
 
         if self.args.fp16:
             from torch.cuda import amp
 
+        if ((extra_data_path != None) or (use_ext_df == True)):
+            post_id_all = list(test_data['Post_id'])
+            print(test_data.head())
+            input_mask_all = list(test_data['Attention'])
+        else:
+            post_id_all = list(test['Post_id'])
+            input_mask_all = list(test['Attention'])
+
+        true_labels = []
+        pred_labels = []
+        logits_all = []
+        attention_all = []
+
         for i, batch in enumerate(tqdm(eval_dataloader, disable=args.silent or silent, desc="Running Evaluation")):
             # batch = tuple(t.to(self.device) for t in batch)
-
+            # print(batch)
+            # all_input_ids, all_input_mask, all_segment_ids, all_label_ids
             with torch.no_grad():
-                inputs = self._get_inputs_dict(batch)
+                # inputs = self._get_inputs_dict(batch)
+                b_input_ids = batch[0].to(self.device)
+                all_input_mask = batch[1].to(self.device)
+                all_segment_ids = batch[2].to(self.device)
+                b_labels = batch[3].to(self.device)
 
-                if self.args.fp16:
-                    with amp.autocast():
-                        outputs = model(**inputs)
-                        tmp_eval_loss, logits = outputs[:2]
-                else:
-                    outputs = model(**inputs)
-                    tmp_eval_loss, logits = outputs[:2]
+                outputs = model(b_input_ids,
+                                output_attentions=True,
+                                output_hidden_states=False,
+                                labels=None)
 
-                if multi_label:
-                    logits = logits.sigmoid()
-                if self.args.n_gpu > 1:
-                    tmp_eval_loss = tmp_eval_loss.mean()
-                eval_loss += tmp_eval_loss.item()
+                logits = outputs[0]  # logits
 
-            nb_eval_steps += 1
+            # Move logits and labels to CPU
+            logits = logits.detach().cpu().numpy()
+            label_ids = b_labels.detach().cpu().numpy()  # out_label_ids
 
-            start_index = self.args.eval_batch_size * i
-            end_index = start_index + self.args.eval_batch_size if i != (n_batches - 1) else len(eval_dataset)
-            preds[start_index:end_index] = logits.detach().cpu().numpy()
-            out_label_ids[start_index:end_index] = inputs["labels"].detach().cpu().numpy()
+            attention_vectors = np.mean(outputs[1][11][:, :, 0, :].detach().cpu().numpy(), axis=1)
+       
+            # Calculate the accuracy for this batch of test sentences.
+            # Accumulate the total accuracy.
+            pred_labels += list(np.argmax(logits, axis=1).flatten())
+            true_labels += list(label_ids.flatten())
+            logits_all += list(logits)
+            attention_all += list(attention_vectors)
+            input_mask_all += list(batch[2].detach().cpu().numpy())
 
-            # if preds is None:
-            #     preds = logits.detach().cpu().numpy()
-            #     out_label_ids = inputs["labels"].detach().cpu().numpy()
-            # else:
-            #     preds = np.append(preds, logits.detach().cpu().numpy(), axis=0)
-            #     out_label_ids = np.append(out_label_ids, inputs["labels"].detach().cpu().numpy(), axis=0)
+        logits_all_final = []
+        for logits in logits_all:
+            logits_all_final.append(softmax(logits))
 
-        eval_loss = eval_loss / nb_eval_steps
+        if (use_ext_df == False):
+            testf1 = f1_score(true_labels, pred_labels, average='macro')
+            testacc = accuracy_score(true_labels, pred_labels)
+            testprecision = precision_score(true_labels, pred_labels, average='macro')
+            testrecall = recall_score(true_labels, pred_labels, average='macro')
 
-        if args.sliding_window:
-            count = 0
-            window_ranges = []
-            for n_windows in window_counts:
-                window_ranges.append([count, count + n_windows])
-                count += n_windows
+            # Report the final accuracy for this validation run.
+            print(" Accuracy: {0:.3f}".format(testacc))
+            print(" Fscore: {0:.3f}".format(testf1))
+            print(" Precision: {0:.3f}".format(testprecision))
+            print(" Recall: {0:.3f}".format(testrecall))
+            # print(" Test took: {:}".format(format_time(time.time() - t0)))
 
-            preds = [preds[window_range[0]: window_range[1]] for window_range in window_ranges]
-            out_label_ids = [
-                out_label_ids[i] for i in range(len(out_label_ids)) if i in [window[0] for window in window_ranges]
-            ]
+        attention_vector_final = []
+        for x, y in zip(attention_all, input_mask_all):
+            temp = []
+            for x_ele, y_ele in zip(x, y):
+                if (y_ele == 1):
+                    temp.append(x_ele)
+            attention_vector_final.append(temp)
 
-            model_outputs = preds
+        list_dict = []
 
-            preds = [np.argmax(pred, axis=1) for pred in preds]
-            final_preds = []
-            for pred_row in preds:
-                mode_pred, counts = mode(pred_row)
-                if len(counts) > 1 and counts[0] == counts[1]:
-                    final_preds.append(args.tie_value)
-                else:
-                    final_preds.append(mode_pred[0])
-            preds = np.array(final_preds)
-        elif not multi_label and args.regression is True:
-            preds = np.squeeze(preds)
-            model_outputs = preds
-        else:
-            model_outputs = preds
+        for post_id, attention, logits, pred, ground_truth in zip(post_id_all, attention_vector_final, logits_all_final,
+                                                                  pred_labels, true_labels):
+            temp = {}
+            # encoder = LabelEncoder()
+            # encoder.classes_ = np.load(params['class_names'], allow_pickle=True)
+            pred_label = encode(pred)
 
-            if not multi_label:
-                preds = np.argmax(preds, axis=1)
+            temp["annotation_id"] = post_id
+            temp["classification"] = pred_label
+            temp["classification_scores"] = {"NOT": logits[0], "OFF": logits[1]}
 
-        result, wrong = self.compute_metrics(preds, out_label_ids, eval_examples, **kwargs)
-        result["eval_loss"] = eval_loss
-        results.update(result)
+            topk_indicies = sorted(range(len(attention)), key=lambda i: attention[i])[-topk:]
 
-        output_eval_file = os.path.join(eval_output_dir, "eval_results.txt")
-        with open(output_eval_file, "w") as writer:
-            for key in sorted(result.keys()):
-                writer.write("{} = {}\n".format(key, str(result[key])))
+            temp_hard_rationales = []
+            for ind in topk_indicies:
+                temp_hard_rationales.append({'end_token': ind + 1, 'start_token': ind})
 
-        if self.args.wandb_project and wandb_log and not multi_label and not self.args.regression:
-            if not wandb.setup().settings.sweep_id:
-                logger.info(" Initializing WandB run for evaluation.")
-                wandb.init(project=args.wandb_project, config={**asdict(args)}, **args.wandb_kwargs)
-            if not args.labels_map:
-                self.args.labels_map = {i: i for i in range(self.num_labels)}
+            temp["rationales"] = [{"docid": post_id,
+                                   "hard_rationale_predictions": temp_hard_rationales,
+                                   "soft_rationale_predictions": attention,
+                                   "truth": ground_truth}]
+            list_dict.append(temp)
 
-            labels_list = sorted(list(self.args.labels_map.keys()))
-            inverse_labels_map = {value: key for key, value in self.args.labels_map.items()}
-
-            truth = [inverse_labels_map[out] for out in out_label_ids]
-
-            # Confusion Matrix
-            wandb.sklearn.plot_confusion_matrix(
-                truth, [inverse_labels_map[pred] for pred in preds], labels=labels_list,
-            )
-
-            if not self.args.sliding_window:
-                # ROC`
-                wandb.log({"roc": wandb.plots.ROC(truth, model_outputs, labels_list)})
-
-                # Precision Recall
-                wandb.log({"pr": wandb.plots.precision_recall(truth, model_outputs, labels_list)})
-
-        return results, model_outputs, wrong
+        return list_dict, test_data
 
     def load_and_cache_examples(
-        self, 
-        examples, 
-        evaluate=False, 
-        no_cache=False, 
-        multi_label=False, 
-        verbose=True, 
-        silent=False
-    ):
-        
-        return super().load_and_cache_examples(
+            self,
             examples,
-            evaluate=evaluate,
-            no_cache=no_cache,
-            multi_label=multi_label,
-            verbose=verbose,
-            silent=silent,
+            evaluate=False,
+            no_cache=False,
+            multi_label=False,
+            verbose=True,
+            silent=False
+    ):
+        """
+                Converts a list of example objects to a TensorDataset containing InputFeatures. Caches the InputFeatures.
+                Utility function for train() and eval() methods. Not intended to be used directly.
+                """
+        process_count = self.args.process_count
+
+        tokenizer = self.tokenizer
+        args = self.args
+
+        if not no_cache:
+            no_cache = args.no_cache
+
+        if not multi_label and args.regression:
+            output_mode = "regression"
+        else:
+            output_mode = "classification"
+
+        if not no_cache:
+            os.makedirs(self.args.cache_dir, exist_ok=True)
+
+        mode = "dev" if evaluate else "train"
+
+        cached_features_file = os.path.join(
+            args.cache_dir,
+            "cached_{}_{}_{}_{}_{}".format(
+                mode, args.model_type, args.max_seq_length, self.num_labels, len(examples),
+            ),
         )
 
+        if os.path.exists(cached_features_file) and (
+                (not args.reprocess_input_data and not no_cache)
+                or (mode == "dev" and args.use_cached_eval_features and not no_cache)
+        ):
+            features = torch.load(cached_features_file)
+            if verbose:
+                logger.info(f" Features loaded from cache at {cached_features_file}")
+        else:
+            if verbose:
+                logger.info(" Converting to features started. Cache is not used.")
+                if args.sliding_window:
+                    logger.info(" Sliding window enabled")
+
+            # If labels_map is defined, then labels need to be replaced with ints
+            labels_map = {
+                'NOT': 0,
+                'OFF': 1
+            }
+
+            if not self.args.regression:
+                for example in examples:
+                    if multi_label:
+                        example.label = [labels_map[label] for label in example.label]
+                    else:
+                        example.label = labels_map[example.label]
+
+            features = convert_examples_to_features(
+                examples,
+                args.max_seq_length,
+                tokenizer,
+                output_mode,
+                # XLNet has a CLS token at the end
+                cls_token_at_end=bool(args.model_type in ["xlnet"]),
+                cls_token=tokenizer.cls_token,
+                cls_token_segment_id=2 if args.model_type in ["xlnet"] else 0,
+                sep_token=tokenizer.sep_token,
+                # RoBERTa uses an extra separator b/w pairs of sentences,
+                # cf. github.com/pytorch/fairseq/commit/1684e166e3da03f5b600dbb7855cb98ddfcd0805
+                sep_token_extra=bool(args.model_type in ["roberta", "camembert", "xlmroberta", "longformer"]),
+                # PAD on the left for XLNet
+                pad_on_left=bool(args.model_type in ["xlnet"]),
+                pad_token=tokenizer.convert_tokens_to_ids([tokenizer.pad_token])[0],
+                pad_token_segment_id=4 if args.model_type in ["xlnet"] else 0,
+                process_count=process_count,
+                multi_label=multi_label,
+                silent=args.silent or silent,
+                use_multiprocessing=args.use_multiprocessing,
+                sliding_window=args.sliding_window,
+                flatten=not evaluate,
+                stride=args.stride,
+                add_prefix_space=bool(args.model_type in ["roberta", "camembert", "xlmroberta", "longformer"]),
+                # avoid padding in case of single example/online inferencing to decrease execution time
+                pad_to_max_length=bool(len(examples) > 1),
+                args=args,
+            )
+            if verbose and args.sliding_window:
+                logger.info(f" {len(features)} features created from {len(examples)} samples.")
+
+            if not no_cache:
+                torch.save(features, cached_features_file)
+
+        if args.sliding_window and evaluate:
+            features = [
+                [feature_set] if not isinstance(feature_set, list) else feature_set for feature_set in features
+            ]
+            features = [feature for feature_set in features for feature in feature_set]
+
+        all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)
+        all_input_mask = torch.tensor([f.input_mask for f in features], dtype=torch.long)
+        all_segment_ids = torch.tensor([f.segment_ids for f in features], dtype=torch.long)
+
+        if self.args.model_type == "layoutlm":
+            all_bboxes = torch.tensor([f.bboxes for f in features], dtype=torch.long)
+
+        if output_mode == "classification":
+            all_label_ids = torch.tensor([f.label_id for f in features], dtype=torch.long)
+        elif output_mode == "regression":
+            all_label_ids = torch.tensor([f.label_id for f in features], dtype=torch.float)
+
+        if self.args.model_type == "layoutlm":
+            dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids, all_bboxes)
+        else:
+            dataset = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids)
+
+        eval_sampler = SequentialSampler(dataset)
+        eval_dataloader = DataLoader(dataset, sampler=eval_sampler, batch_size=args.eval_batch_size)
+        return eval_dataloader
+
     def compute_metrics(
-        self, preds, labels, eval_examples=None, multi_label=False, **kwargs
+            self, preds, labels, eval_examples=None, multi_label=False, **kwargs
     ):
         return super().compute_metrics(
             preds,
@@ -647,3 +752,35 @@ class ExplainableModel(ClassificationModel):
 
     def predict(self, to_predict, multi_label=True):
         return super().predict(to_predict, multi_label=multi_label)
+
+    def get_final_dict_with_rational(self, params, test_data=None, topk=5):
+        list_dict_org, test_data = self.standaloneEval_with_rational(params, extra_data_path=test_data, topk=topk)
+        test_data_with_rational = convert_data(test_data, params, list_dict_org, rational_present=True, topk=topk)
+        list_dict_with_rational, _ = self.standaloneEval_with_rational(params, test_data=test_data_with_rational,
+                                                                       topk=topk,
+                                                                       use_ext_df=True)
+        test_data_without_rational = convert_data(test_data, params, list_dict_org, rational_present=False, topk=topk)
+        list_dict_without_rational, _ = self.standaloneEval_with_rational(params, test_data=test_data_without_rational,
+                                                                          topk=topk, use_ext_df=True)
+        final_list_dict = []
+        for ele1, ele2, ele3 in zip(list_dict_org, list_dict_with_rational, list_dict_without_rational):
+            ele1['sufficiency_classification_scores'] = ele2['classification_scores']
+            ele1['comprehensiveness_classification_scores'] = ele3['classification_scores']
+            final_list_dict.append(ele1)
+        return final_list_dict
+
+
+class NumpyEncoder(json.JSONEncoder):
+    """ Special json encoder for numpy types """
+
+    def default(self, obj):
+        if isinstance(obj, (np.int_, np.intc, np.intp, np.int8,
+                            np.int16, np.int32, np.int64, np.uint8,
+                            np.uint16, np.uint32, np.uint64)):
+            return int(obj)
+        elif isinstance(obj, (np.float_, np.float16, np.float32,
+                              np.float64)):
+            return float(obj)
+        elif isinstance(obj, (np.ndarray,)):  #### This is the fix
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
