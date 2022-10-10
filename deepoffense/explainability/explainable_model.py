@@ -520,11 +520,11 @@ class ExplainableModel(ClassificationModel):
 
         if ((extra_data_path != None) or (use_ext_df == True)):
             post_id_all = list(test_data['Post_id'])
-            print(test_data.head())
-            input_mask_all = list(test_data['Attention'])
+            # print(test_data.iloc[0]['Attention'])
+            input_mask_all = list(test_data['Rationales'])
         else:
             post_id_all = list(test['Post_id'])
-            input_mask_all = list(test['Attention'])
+            input_mask_all = list(test['Rationales'])
 
         true_labels = []
         pred_labels = []
@@ -555,13 +555,19 @@ class ExplainableModel(ClassificationModel):
 
             attention_vectors = np.mean(outputs[1][11][:, :, 0, :].detach().cpu().numpy(), axis=1)
 
+            # print('attention vections')
+            # print(attention_vectors)
+            #
+            # input_mask = batch[2].detach().cpu().numpy()
+            # print('input mask')
+            # print(input_mask)
             # Calculate the accuracy for this batch of test sentences.
             # Accumulate the total accuracy.
             pred_labels += list(np.argmax(logits, axis=1).flatten())
             true_labels += list(label_ids.flatten())
             logits_all += list(logits)
             attention_all += list(attention_vectors)
-            input_mask_all += list(batch[2].detach().cpu().numpy())
+            # input_mask_all += list(input_mask)
 
         logits_all_final = []
         for logits in logits_all:
@@ -586,6 +592,7 @@ class ExplainableModel(ClassificationModel):
             for x_ele, y_ele in zip(x, y):
                 if (y_ele == 1):
                     temp.append(x_ele)
+                    print('test')
             attention_vector_final.append(temp)
 
         list_dict = []

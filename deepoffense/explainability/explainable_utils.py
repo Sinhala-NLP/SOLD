@@ -181,7 +181,7 @@ class Vocab_own():
         self.itos[0] = '<pad>'
         self.embeddings.append(np.zeros((300,), dtype=float))
         self.embeddings = np.array(self.embeddings)
-        print(self.embeddings.shape)
+        # print(self.embeddings.shape)
 
 
 text_processor = TextPreProcessor(
@@ -466,11 +466,13 @@ def get_test_data(data, params, tokenizer = None, message='text'):
     attention_list = []
     label_list = []
     raw_text_list = []
+    rationale_list = []
     print('total_data', len(data))
     for index, row in tqdm(data.iterrows(), total=len(data)):
         post_id = row['post_id']
         annotation = row['final_label']
         text = row['text']
+        rationales = row['rationales']
         tokens_all, attention_masks = returnMask(row, params, tokenizer)
         attention_vector = aggregate_attention(attention_masks, row, params)
         attention_list.append(attention_vector)
@@ -478,12 +480,12 @@ def get_test_data(data, params, tokenizer = None, message='text'):
         label_list.append(annotation)
         post_ids_list.append(post_id)
         raw_text_list.append(text)
+        rationale_list.append(rationales)
 
     # Calling DataFrame constructor after zipping
     # both lists, with columns specified
-    training_data = pd.DataFrame(list(zip(post_ids_list, text_list, attention_list, label_list, raw_text_list)),
-                                 columns=['Post_id', 'Text', 'Attention', 'Label', 'Raw Text List'])
-    print(training_data.head())
+    training_data = pd.DataFrame(list(zip(post_ids_list, text_list, attention_list, label_list, raw_text_list, rationale_list)),
+                                 columns=['Post_id', 'Text', 'Attention', 'Label', 'Raw Text List', 'Rationales'])
     return training_data
 
 
@@ -499,6 +501,7 @@ def get_training_data(data, params, tokenizer):
     count = 0
     count_confused = 0
     raw_text_list = []
+    rationale_list = []
     print('total_data', len(data))
     for index, row in tqdm(data.iterrows(), total=len(data)):
         # print(row)
@@ -508,6 +511,7 @@ def get_training_data(data, params, tokenizer):
 
         # annotation_list=[row['label'],row['label2'],row['label3']]
         annotation = row['label']
+        rationales = row['rationales']
 
         if (annotation != 'undecided'):
             tokens_all, attention_masks = returnMask(row, params, tokenizer)
@@ -517,6 +521,7 @@ def get_training_data(data, params, tokenizer):
             label_list.append(annotation)
             post_ids_list.append(post_id)
             raw_text_list.append(text)
+            rationale_list.append(rationales)
         else:
             count_confused += 1
 
@@ -524,8 +529,8 @@ def get_training_data(data, params, tokenizer):
     print("no_majority:", count_confused)
     # Calling DataFrame constructor after zipping
     # both lists, with columns specified
-    training_data = pd.DataFrame(list(zip(post_ids_list, text_list, attention_list, label_list, raw_text_list)),
-                                 columns=['Post_id', 'Text', 'Attention', 'Label', 'Raw Text List'])
+    training_data = pd.DataFrame(list(zip(post_ids_list, text_list, attention_list, label_list, raw_text_list, rationale_list)),
+                                 columns=['Post_id', 'Text', 'Attention', 'Label', 'Raw Text List', 'Rationales'])
 
     filename = set_name(params)
     training_data.to_pickle(filename)
@@ -993,7 +998,7 @@ def convert_data(test_data, params, list_dict, rational_present=True, topk=2):
                 if (i not in topk_indices):
                     new_text.append(row['Text'][i])
                     new_attention.append(row['Attention'][i])
-        test_data_modified.append([row['Post_id'], new_text, new_attention, row['Label'], row['Raw Text List']])
+        test_data_modified.append([row['Post_id'], new_text, new_attention, row['Label'], row['Raw Text List'], row['Rationales']])
 
     df = pd.DataFrame(test_data_modified, columns=test_data.columns)
     return df
