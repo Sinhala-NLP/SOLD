@@ -34,50 +34,38 @@ trn_data = pd.read_csv(arguments.train, sep="\t")
 tst_data = pd.read_csv(arguments.test, sep="\t")
 
 if arguments.lang == "en":
-    train_set = pd.read_csv('data/other/other-data_sub_task_a.tsv', sep="\t")
-    test_set = pd.read_csv('data/other/testset-levela.tsv', sep="\t")
-    olid_test_labels = pd.read_csv('data/other/labels-levela.csv', names=['index', 'labels'])
-
-    train_set = train_set[['text', 'labels']]
-    test_set = test_set.rename(columns={'tweet': 'text'})
-    test_set['labels'] = encode(olid_test_labels['labels'])
-
-    train_set['labels'] = encode(train_set["labels"])
-
+    trn_data, tst_data = train_test_split(trn_data, test_size=0.1)
 
 elif arguments.lang == "sin":
     trn_data = trn_data.rename(columns={'content': 'text', 'Class': 'labels'})
 
-    # sold_test_file = pd.read_csv('data/SOLD_test.tsv', sep="\t")
-    # test = sold_test_file.rename(columns={'content': 'text'})
-    # train, test = train_test_split(sold_train_file, test_size=0.1, random_state=777)
-
-    train_set = trn_data[['text', 'labels']]
-    train_set['labels'] = encode(train_set['labels'])
-    test_set = tst_data[['text']]
-
 elif arguments.lang == "hin":
-    hindi_train_file = pd.read_csv('data/other/hindi_dataset.tsv', sep="\t")
-    train = hindi_train_file.rename(columns={'task_1': 'labels'})
+    # hindi_train_file = pd.read_csv('data/other/hindi_dataset.tsv', sep="\t")
+    # train = hindi_train_file.rename(columns={'task_1': 'labels'})
+    #
+    # hindi_test_file = pd.read_csv('data/other/hasoc2019_hi_test_gold_2919.tsv', sep="\t")
+    # test = hindi_test_file.rename(columns={'subtask_a': 'labels', 'tweet': 'text'})
 
-    hindi_test_file = pd.read_csv('data/other/hasoc2019_hi_test_gold_2919.tsv', sep="\t")
-    test = hindi_test_file.rename(columns={'subtask_a': 'labels', 'tweet': 'text'})
-
-    # train, test = train_test_split(hindi_train_file, test_size=0.1, random_state=777)
-    train_set = train[['text', 'labels']]
-    train_set['labels'] = encode(train_set['labels'])
-    test_set = test[['text', 'labels']]
-    test_set['labels'] = encode(test_set['labels'])
+    trn_data = trn_data.rename(columns={'task_1': 'labels'})
+    tst_data = tst_data.rename(columns={'subtask_a': 'labels', 'tweet': 'text'})
 
 
+
+train_set = trn_data[['text', 'labels']]
+train_set['labels'] = encode(train_set['labels'])
+test_set = tst_data[['text']]
 
 test_sentences = test_set['text'].tolist()
 
 test_preds = np.zeros((len(test_set), args["n_fold"]))
 
+MODEL_NAME = arguments.model_name
+MODEL_TYPE = arguments.model_type
+cuda_device = arguments.cuda_device
+
 for i in range(args["n_fold"]):
     train_set, validation_set = train_test_split(train_set, test_size=0.2, random_state=args["manual_seed"])
-    model = OffensiveNNModel(model_type_or_path=arguments.algorithm, embedding_model_name_or_path=arguments.model_name,
+    model = OffensiveNNModel(MODEL_NAME,model_type_or_path=arguments.algorithm,
                              train_df=train_set,
                              args=args, eval_df=validation_set)
     model.train_model()
@@ -100,11 +88,11 @@ test_set['predictions'] = final_predictions
 prediction_large_csv = test_set
 prediction_large_csv.to_csv('best_model_prediction_large.csv')
 confidence_df = pd.DataFrame(probs)
-test['preds'] = predictions
-predictions_df = pd.merge(test, test[['preds']], how='left', left_index=True, right_index=True)
+test_set['preds'] = predictions
+predictions_df = pd.merge(test_set, test_set[['preds']], how='left', left_index=True, right_index=True)
 predictions_df.to_csv('prediction.csv')
 confidence_df.to_csv('confidence_result1.csv', index=False)
-test['predictions'] = predictions
+test_set['predictions'] = predictions
 df1 = pd.read_csv('prediction.csv')
 column_names = ['1', '2']
 df = pd.read_csv('confidence_result1.csv', names=column_names, header=None)
