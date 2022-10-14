@@ -69,6 +69,7 @@ test_set['predictions'] = final_predictions
 test_set['predictions'] = decode(test_set['predictions'])
 prediction_large_csv = test_set
 prediction_large_csv.to_csv('best_model_prediction_large.csv')
+test_set['predictions'] = encode(test_set['predictions'])
 # get confidence and predictions
 confidence_df = pd.DataFrame(probs)
 test_set['preds'] = predictions
