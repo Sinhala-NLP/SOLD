@@ -134,6 +134,8 @@ if offensive_posts is not None:
         off_prob = offensive_posts.loc[ix]['1']
         if ((m1 + l1 > off_prob) and (m1 - l1 < off_prob)):
             new.append(offensive_posts.loc[ix]['1'])
+else:
+    new.append(None)
 
 offensive_not_posts = df_group_posts.get_group(1.0)
 if offensive_not_posts is not None:
@@ -141,6 +143,8 @@ if offensive_not_posts is not None:
         not_off_prob = offensive_not_posts.loc[ix]['2']
         if ((m1 + l1 > not_off_prob) and (m1 - l1 < not_off_prob)):
             new2.append(offensive_not_posts.loc[ix]['2'])
+else:
+    new2.append(None)
 
 df_new = result.iloc[np.where(result['1'].isin(new))]
 df_new2 = result.iloc[np.where(result['2'].isin(new2))]
