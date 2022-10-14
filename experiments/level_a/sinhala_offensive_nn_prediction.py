@@ -54,6 +54,7 @@ elif arguments.lang == "sin":
     train_set = train[['text', 'labels']]
     train_set['labels'] = encode(train_set['labels'])
     test_set = test[['text']]
+
     # test_set['labels'] = encode(test_set['labels'])
 
 
@@ -72,7 +73,10 @@ elif arguments.lang == "hin":
 
 test_sentences = test_set['text'].tolist()
 
+
 test_preds = np.zeros((len(test_set), args["n_fold"]))
+print('-------------------')
+print(len(test_set))
 
 
 for i in range(args["n_fold"]):
