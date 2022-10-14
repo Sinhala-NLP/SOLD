@@ -56,12 +56,6 @@ elif arguments.lang == "sin":
     train_set['labels'] = encode(train_set['labels'])
     test_set = tst_data[['text']]
 
-    print('-------------------')
-    print(len(test_set))
-
-    # test_set['labels'] = encode(test_set['labels'])
-
-
 elif arguments.lang == "hin":
     hindi_train_file = pd.read_csv('data/other/hindi_dataset.tsv', sep="\t")
     train = hindi_train_file.rename(columns={'task_1': 'labels'})
@@ -75,13 +69,11 @@ elif arguments.lang == "hin":
     test_set = test[['text', 'labels']]
     test_set['labels'] = encode(test_set['labels'])
 
+
+
 test_sentences = test_set['text'].tolist()
 
-
 test_preds = np.zeros((len(test_set), args["n_fold"]))
-# print('-------------------')
-# print(len(test_set))
-
 
 for i in range(args["n_fold"]):
     train_set, validation_set = train_test_split(train_set, test_size=0.2, random_state=args["manual_seed"])
@@ -104,7 +96,8 @@ for row in test_preds:
 test_set['predictions'] = final_predictions
 
 # select majority class of each instance (row)
-prediction_large_csv = test_set['predictions']
+# prediction_large_csv = test_set['predictions']
+prediction_large_csv = test_set
 prediction_large_csv.to_csv('best_model_prediction_large.csv')
 confidence_df = pd.DataFrame(probs)
 test['preds'] = predictions
