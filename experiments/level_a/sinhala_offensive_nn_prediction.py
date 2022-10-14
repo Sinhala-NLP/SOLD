@@ -1,18 +1,14 @@
-import argparse
 import os
-
+import argparse
 import pandas as pd
 import sklearn
 from sklearn.model_selection import train_test_split
-
-from offensive_nn.config.sold_config import args
 from offensive_nn.offensive_nn_model import OffensiveNNModel
 from offensive_nn.util.label_converter import encode, decode
 from offensive_nn.util.print_stat import print_information
 from deepoffense.util.evaluation import macro_f1, weighted_f1
 from deepoffense.common.deepoffense_config import LANGUAGE_FINETUNE, TEMP_DIRECTORY, SUBMISSION_FOLDER, \
     MODEL_TYPE, MODEL_NAME, language_modeling_args, args, SEED, RESULT_FILE
-
 from scipy.special import softmax
 import numpy as np
 
@@ -20,7 +16,7 @@ if not os.path.exists(TEMP_DIRECTORY): os.makedirs(TEMP_DIRECTORY)
 if not os.path.exists(os.path.join(TEMP_DIRECTORY, SUBMISSION_FOLDER)): os.makedirs(
     os.path.join(TEMP_DIRECTORY, SUBMISSION_FOLDER))
 
-
+# load arguments
 parser = argparse.ArgumentParser(
     description='''evaluates multiple models  ''')
 parser.add_argument('--model_name', required=False, help='model name', default=None)
@@ -30,19 +26,19 @@ parser.add_argument('--train', required=False, help='train file', default='data/
 parser.add_argument('--test', required=False, help='test file')
 arguments = parser.parse_args()
 
+# load datafiles related to different languages
 trn_data = pd.read_csv(arguments.train, sep="\t")
 tst_data = pd.read_csv(arguments.test, sep="\t")
 
 if arguments.lang == "en":
     trn_data, tst_data = train_test_split(trn_data, test_size=0.1)
-
 elif arguments.lang == "sin":
     trn_data = trn_data.rename(columns={'content': 'text', 'Class': 'labels'})
-
 elif arguments.lang == "hin":
     trn_data = trn_data.rename(columns={'task_1': 'labels'})
     tst_data = tst_data.rename(columns={'subtask_a': 'labels', 'tweet': 'text'})
 
+# process the datafiles and the argument
 train_set = trn_data[['text', 'labels']]
 train_set['labels'] = encode(train_set['labels'])
 test_set = tst_data[['text']]
@@ -52,8 +48,6 @@ test_sentences = test_set['text'].tolist()
 test_preds = np.zeros((len(test_set), args["n_fold"]))
 
 MODEL_NAME = arguments.model_name
-MODEL_TYPE = arguments.model_type
-cuda_device = arguments.cuda_device
 
 for i in range(args["n_fold"]):
     train_set, validation_set = train_test_split(train_set, test_size=0.2, random_state=args["manual_seed"])
