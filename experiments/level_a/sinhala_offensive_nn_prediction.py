@@ -96,7 +96,8 @@ for row in test_preds:
 test_set['predictions'] = final_predictions
 
 # select majority class of each instance (row)
-
+prediction_large_csv = test
+prediction_large_csv.to_csv('best_model_prediction_large.csv')
 confidence_df = pd.DataFrame(probs)
 test['preds'] = predictions
 predictions_df = pd.merge(test, test[['preds']], how='left', left_index=True, right_index=True)
