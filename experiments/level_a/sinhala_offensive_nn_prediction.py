@@ -96,7 +96,7 @@ for row in test_preds:
 test_set['predictions'] = final_predictions
 
 # select majority class of each instance (row)
-prediction_large_csv = final_predictions
+prediction_large_csv = test_set['predictions']
 prediction_large_csv.to_csv('best_model_prediction_large.csv')
 confidence_df = pd.DataFrame(probs)
 test['preds'] = predictions
