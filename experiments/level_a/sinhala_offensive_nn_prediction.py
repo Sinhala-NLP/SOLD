@@ -38,20 +38,16 @@ elif arguments.lang == "hin":
     trn_data = trn_data.rename(columns={'task_1': 'labels'})
     tst_data = tst_data.rename(columns={'subtask_a': 'labels', 'tweet': 'text'})
 
-# process the datafiles and the argument
+# process the datafiles
 train_set = trn_data[['text', 'labels']]
 train_set['labels'] = encode(train_set['labels'])
 test_set = tst_data[['text']]
-
 test_sentences = test_set['text'].tolist()
-
 test_preds = np.zeros((len(test_set), args["n_fold"]))
-
-MODEL_NAME = arguments.model_name
 
 for i in range(args["n_fold"]):
     train_set, validation_set = train_test_split(train_set, test_size=0.2, random_state=args["manual_seed"])
-    model = OffensiveNNModel(MODEL_NAME,model_type_or_path=arguments.algorithm,
+    model = OffensiveNNModel(embedding_model_name_or_path=arguments.model_name, model_type_or_path=arguments.algorithm,
                              train_df=train_set,
                              args=args, eval_df=validation_set)
     model.train_model()
