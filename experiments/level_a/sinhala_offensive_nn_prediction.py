@@ -30,6 +30,9 @@ parser.add_argument('--train', required=False, help='train file', default='data/
 parser.add_argument('--test', required=False, help='test file')
 arguments = parser.parse_args()
 
+trn_data = pd.read_csv(arguments.train, sep="\t")
+tst_data = pd.read_csv(arguments.test, sep="\t")
+
 if arguments.lang == "en":
     train_set = pd.read_csv('data/other/other-data_sub_task_a.tsv', sep="\t")
     test_set = pd.read_csv('data/other/testset-levela.tsv', sep="\t")
@@ -43,17 +46,15 @@ if arguments.lang == "en":
 
 
 elif arguments.lang == "sin":
-    sold_train_file = pd.read_csv('data/SOLD_train.tsv', sep="\t")
-    train = sold_train_file.rename(columns={'content': 'text', 'Class': 'labels'})
+    trn_data = trn_data.rename(columns={'content': 'text', 'Class': 'labels'})
 
-    sold_test_file = pd.read_csv('data/SOLD_test.tsv', sep="\t")
-    test = sold_test_file.rename(columns={'content': 'text'})
-
+    # sold_test_file = pd.read_csv('data/SOLD_test.tsv', sep="\t")
+    # test = sold_test_file.rename(columns={'content': 'text'})
     # train, test = train_test_split(sold_train_file, test_size=0.1, random_state=777)
 
-    train_set = train[['text', 'labels']]
+    train_set = trn_data[['text', 'labels']]
     train_set['labels'] = encode(train_set['labels'])
-    test_set = test[['text']]
+    test_set = tst_data[['text']]
 
     print('-------------------')
     print(len(test_set))
