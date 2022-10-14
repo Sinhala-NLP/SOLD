@@ -92,7 +92,7 @@ m1 = np.mean(df['1'])
 m2 = np.mean(df['2'])
 print(m1,m2)
 # Adjustable standard deviation value
-l1 = arguments.sdvalue
+l1 = float(arguments.sdvalue)
 
 # get all the offensive and not offensive posts from the dataset
 df_group_posts = result.groupby('preds_y')
