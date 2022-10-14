@@ -40,16 +40,8 @@ elif arguments.lang == "sin":
     trn_data = trn_data.rename(columns={'content': 'text', 'Class': 'labels'})
 
 elif arguments.lang == "hin":
-    # hindi_train_file = pd.read_csv('data/other/hindi_dataset.tsv', sep="\t")
-    # train = hindi_train_file.rename(columns={'task_1': 'labels'})
-    #
-    # hindi_test_file = pd.read_csv('data/other/hasoc2019_hi_test_gold_2919.tsv', sep="\t")
-    # test = hindi_test_file.rename(columns={'subtask_a': 'labels', 'tweet': 'text'})
-
     trn_data = trn_data.rename(columns={'task_1': 'labels'})
     tst_data = tst_data.rename(columns={'subtask_a': 'labels', 'tweet': 'text'})
-
-
 
 train_set = trn_data[['text', 'labels']]
 train_set['labels'] = encode(train_set['labels'])
@@ -116,8 +108,6 @@ l2 = np.std(df['2'])
 # get all the offensive and not offensive posts from the dataset
 
 df_group_posts = result.groupby('preds_y')
-
-
 offensive_posts = df_group_posts.get_group(0.0)
 if offensive_posts is not None:
     for ix in offensive_posts.index:
@@ -146,7 +136,7 @@ new_dataframe['preds_y'] = new_dataframe['preds_y'].map({0.0: 'NOT', 1.0: 'OFF'}
 new_dataframe.rename({'text': 'content', 'preds_y': 'Class'}, axis=1, inplace=True)
 new_dataframe.to_csv('new_train.csv')
 
-test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
+test_set.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
 
 df_nw = pd.read_csv(arguments.train, sep="\t")
 df_merged = df_nw.append(new_dataframe, ignore_index=True)
