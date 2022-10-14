@@ -24,6 +24,7 @@ parser.add_argument('--lang', required=False, help='language', default="en")  # 
 parser.add_argument('--algorithm', required=False, help='algorithm', default="cnn2D")  # lstm or cnn2D
 parser.add_argument('--train', required=False, help='train file', default='data/olid/olid-training-v1.0.tsv')
 parser.add_argument('--test', required=False, help='test file')
+parser.add_argument('--sdvalue', required=False, help='standard deviation', default=0.015)
 arguments = parser.parse_args()
 
 # load datafiles related to different languages
@@ -65,10 +66,10 @@ for row in test_preds:
 
 test_set['predictions'] = final_predictions
 
-# select majority class of each instance (row)
-# prediction_large_csv = test_set['predictions']
+test_set['predictions'] = decode(test_set['predictions'])
 prediction_large_csv = test_set
 prediction_large_csv.to_csv('best_model_prediction_large.csv')
+# get confidence and predictions
 confidence_df = pd.DataFrame(probs)
 test_set['preds'] = predictions
 predictions_df = pd.merge(test_set, test_set[['preds']], how='left', left_index=True, right_index=True)
@@ -82,21 +83,17 @@ frames = [df, df1]
 result = pd.concat([df1, df], axis=1)
 result.to_csv('one_prediction.csv')
 # print((result['preds_y']).value_counts())
-
 new = []
 new1 = []
 new2 = []
-
+# get the mean value of the labels
 m1 = np.mean(df['1'])
 m2 = np.mean(df['2'])
-
 print(m1,m2)
-
-l1 = 0.01
-l2 = np.std(df['2'])
+# Adjustable standard deviation value
+l1 = arguments.sdvalue
 
 # get all the offensive and not offensive posts from the dataset
-
 df_group_posts = result.groupby('preds_y')
 offensive_posts = df_group_posts.get_group(0.0)
 if offensive_posts is not None:
