@@ -3,12 +3,17 @@ import json
 import ast
 import random
 
+from tqdm.notebook import tqdm
+import more_itertools as mit
+
 import numpy as np
 import torch
 
 from deepoffense.explainability import ExplainableModel
 from deepoffense.common.deepoffense_config import LANGUAGE_FINETUNE, TEMP_DIRECTORY, SUBMISSION_FOLDER, \
     MODEL_TYPE, MODEL_NAME, language_modeling_args, args, SEED, RESULT_FILE
+from deepoffense.explainability.explainable_utils import *
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
 if not os.path.exists(TEMP_DIRECTORY): os.makedirs(TEMP_DIRECTORY)
 if not os.path.exists(os.path.join(TEMP_DIRECTORY, SUBMISSION_FOLDER)): os.makedirs(
@@ -85,15 +90,7 @@ def return_params(path_name, att_lambda, num_classes=2):
     return params
 
 
-def main():
-    model_to_use = 'bert'
-    attention_lambda = 100
-
-    model_dict_params = {
-        'bert': 'deepoffense/explainability/bestModel_bert_base_uncased_Attn_train_FALSE.json',
-    }
-
-    params = return_params(model_dict_params[model_to_use], float(attention_lambda))
+def generate_explanation_dictionary(params):
     fix_the_random(seed_val=params['random_seed'])
 
     # TODO: pass by args
@@ -109,7 +106,45 @@ def main():
     with open(path_name_explanation, 'w') as fp:
         fp.write('\n'.join(json.dumps(i, cls=NumpyEncoder) for i in final_list_dict))
 
+def convert_to_eraser(params):
+    data_all_labelled = pd.read_csv(params['data_file'], sep="\t")
+    data_all_labelled.tokens = data_all_labelled.tokens.str.split()
+    data_all_labelled.rationales = data_all_labelled.rationales.apply(lambda x: ast.literal_eval(x))
+    data_all_labelled['final_label'] = data_all_labelled['label']
+
+    # TODO: use tokenizer in explainability model
+    if (params['bert_tokens']):
+        print('Loading tokenizer...')
+        # tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=False)
+        tokenizer = AutoTokenizer.from_pretrained(params['model_name'])
+    else:
+        print('Loading Normal tokenizer...')
+        tokenizer = None
+
+    training_data=get_training_data_eraser(data_all_labelled, params, tokenizer)
+
+    # The post_id_divisions file stores the train, val, test split ids. We select only the test ids.
+    with open('deepoffense/explainability/post_id_divisions.json') as fp:
+        id_division = json.load(fp)
+
+    method = 'union'
+    save_split = True
+    save_path = 'data/Evaluation/Model_Eval/'  # The dataset in Eraser Format will be stored here.
+    output_eraser = convert_to_eraser_format(training_data, method, save_split, save_path, id_division)
+
+    return output_eraser
 
 if __name__ == '__main__':
-    main()
+    model_to_use = 'bert'
+    attention_lambda = 100
+
+    model_dict_params = {
+        'bert': 'deepoffense/explainability/bestModel_bert_base_uncased_Attn_train_FALSE.json',
+    }
+
+    params = return_params(model_dict_params[model_to_use], float(attention_lambda))
+
+    generate_explanation_dictionary(params)
+    output_eraser = convert_to_eraser(params)
+
 
