@@ -102,12 +102,6 @@ params['model_name'] = "sinhala-nlp/sinbert-sold-si"
 params['best_params']=False
 
 #TODO: pass by args
-eval_df = pd.read_csv('/content/SOLD/data/SOLD_test.tsv', sep="\t")
-
-eval_df = eval_df.rename(columns={'content': 'text', 'Class': 'labels'})
-eval_df = eval_df[['text', 'labels']]
-eval_df['labels'] = encode(eval_df["labels"])
-
 model = ExplainableModel("auto", "sinhala-nlp/sinbert-sold-si", args=args,
                                 use_cuda=torch.cuda.is_available())
 
