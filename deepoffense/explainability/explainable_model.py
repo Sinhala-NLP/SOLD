@@ -467,7 +467,7 @@ class ExplainableModel(ClassificationModel):
         print(args)
         eval_output_dir = output_dir
 
-        train, val, test = createDatasetSplit(params)
+        test = createDatasetSplit(params)
         vocab_own = None
 
         results = {}
