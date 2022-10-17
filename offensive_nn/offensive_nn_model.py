@@ -1,3 +1,4 @@
+import io
 import logging
 import os
 import random
@@ -8,6 +9,7 @@ import gensim.downloader as api
 import gensim.utils
 import numpy as np
 import tensorflow as tf
+from gensim.models import KeyedVectors
 from tensorflow import keras
 from tensorflow.python.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
 
@@ -29,7 +31,8 @@ class OffensiveNNModel:
                  embedding_model_name_or_path=None,
                  train_df=None,
                  eval_df=None,
-                 args=None):
+                 args=None,
+                 emd_file=None):
 
         if os.path.isdir(model_type_or_path):
             self.model = keras.models.load_model(model_type_or_path)
@@ -64,6 +67,16 @@ class OffensiveNNModel:
 
             self.args.max_features = len(self.word_index) + 1
 
+            # if transfer learning enabled, load the embedding matrix
+            if emd_file is not None:
+                self.transfer_learning = True
+                transfer_learn_wv = self.load_from_vec_file(emd_file=emd_file)
+                self.transfer_learning_embedding_matrix = self.get_emb_matrix(self.word_index,
+                                                                              self.args.max_features,
+                                                                              transfer_learn_wv)
+            else:
+                self.transfer_learning = False
+
             # load embeddings from file,api or no embeddings if embedding_model_name_or_path is None
             if embedding_model_name_or_path is not None:
                 if os.path.isfile(embedding_model_name_or_path):
@@ -73,8 +86,14 @@ class OffensiveNNModel:
                 else:
                     self.embedding_model = api.load(embedding_model_name_or_path)
 
-                self.embedding_matrix = self.get_emb_matrix(self.word_index, self.args.max_features,
-                                                            self.embedding_model)
+                self.primary_embedding_matrix = self.get_emb_matrix(self.word_index, self.args.max_features,
+                                                                    self.embedding_model)
+                if self.transfer_learning:
+                    self.embedding_matrix = np.append(self.transfer_learning_embedding_matrix,
+                                                      self.primary_embedding_matrix, axis=0)
+                    self.args.max_features = (len(self.word_index) + 1) * 2
+                else:
+                    self.embedding_matrix = self.primary_embedding_matrix
             else:
                 self.embedding_matrix = None
 
@@ -90,6 +109,18 @@ class OffensiveNNModel:
             self.model.compile(loss='sparse_categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
 
         logger.info(self.model.summary())
+
+    # only to be used when transfer learning
+    def transfer_learn_train_model(self,
+                    args=None,
+                    verbose=1, train_df=None, eval_df=None):
+        if train_df is not None:
+            self.train_df = train_df
+            self.train_texts, self.train_labels = self._prepare_data(self.train_df)
+        if eval_df is not None:
+            self.eval_df = eval_df
+            self.eval_texts, self.eval_labels = self._prepare_data(self.eval_df)
+        self.train_model(args, verbose)
 
     def train_model(self,
                     args=None,
@@ -205,3 +236,8 @@ class OffensiveNNModel:
         logger.warning("Embeddings are not found for {:.2f}% words.".format(no_embedding_rate * 100))
 
         return embedding_matrix
+
+    @staticmethod
+    def load_from_vec_file(emd_file):
+        w2v_model = KeyedVectors.load_word2vec_format(emd_file)
+        return w2v_model
