@@ -592,7 +592,6 @@ class ExplainableModel(ClassificationModel):
             for x_ele, y_ele in zip(x, y):
                 if (y_ele == 1):
                     temp.append(x_ele)
-                    print('test')
             attention_vector_final.append(temp)
 
         list_dict = []

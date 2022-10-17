@@ -74,7 +74,7 @@ def createDatasetSplit(params):
         # dataset=collect_data(params)
         pass
     else:
-        params['data_file'] = '/content/HateXplain-copy/Data/SOLD_train_annotated.tsv'
+        params['data_file'] = '/content/SOLD/data/SOLD_train.tsv'
 
     if (path.exists(filename[:-7])):
         with open(filename[:-7] + '/train_data.pickle', 'rb') as f:
@@ -94,16 +94,16 @@ def createDatasetSplit(params):
             vector = word2vecmodel1['easy']
             assert (len(vector) == 300)
 
-        params['data_file'] = '/content/HateXplain-copy/Data/SOLD_train_annotated.tsv'
+        params['data_file'] = '/content/SOLD/data/SOLD_train.tsv'
         X_train = collect_data(params)
 
-        params['data_file'] = '/content/HateXplain-copy/Data/SOLD_test_annotated.tsv'
+        params['data_file'] = '/content/SOLD/data/SOLD_test.tsv'
         X_test = collect_data(params)
 
-        params['data_file'] = '/content/HateXplain-copy/Data/sold_trial_annotated.tsv'
+        params['data_file'] = '/content/SOLD/data/sold_trial.tsv'
         X_val = collect_data(params)
 
-        params['data_file'] = '/content/HateXplain-copy/Data/SOLD_train_annotated.tsv'
+        params['data_file'] = '/content/SOLD/data/SOLD_train.tsv'
 
         # TODO: Add datafiles later
         if (params['bert_tokens']):
