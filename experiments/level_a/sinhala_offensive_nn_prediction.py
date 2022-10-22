@@ -24,7 +24,7 @@ parser.add_argument('--lang', required=False, help='language', default="en")  # 
 parser.add_argument('--algorithm', required=False, help='algorithm', default="cnn2D")  # lstm or cnn2D
 parser.add_argument('--train', required=False, help='train file', default='data/olid/olid-training-v1.0.tsv')
 parser.add_argument('--test', required=False, help='test file')
-parser.add_argument('--sdvalue', required=False, help='standard deviation', default=0.015)
+parser.add_argument('--sdvalue', required=False, help='standard deviation', default=0.01)
 arguments = parser.parse_args()
 
 # load datafiles related to different languages
@@ -35,15 +35,19 @@ if arguments.lang == "en":
     trn_data, tst_data = train_test_split(trn_data, test_size=0.1)
 elif arguments.lang == "sin":
     trn_data = trn_data.rename(columns={'content': 'text', 'Class': 'labels'})
+    tst_data = tst_data.rename(columns={'content': 'text', 'Class': 'labels'})
 elif arguments.lang == "hin":
     trn_data = trn_data.rename(columns={'task_1': 'labels'})
     tst_data = tst_data.rename(columns={'subtask_a': 'labels', 'tweet': 'text'})
 
 # process the datafiles
+# Train the model
+print("Started Training")
 train_set = trn_data[['text', 'labels']]
 train_set['labels'] = encode(train_set['labels'])
 test_set = tst_data[['text']]
 test_sentences = test_set['text'].tolist()
+
 test_preds = np.zeros((len(test_set), args["n_fold"]))
 
 for i in range(args["n_fold"]):
@@ -66,36 +70,31 @@ for row in test_preds:
 
 test_set['predictions'] = final_predictions
 
-test_set['predictions'] = decode(test_set['predictions'])
-prediction_large_csv = test_set
-prediction_large_csv.to_csv('best_model_prediction_large.csv')
-test_set['predictions'] = encode(test_set['predictions'])
-# get confidence and predictions
+# get confidence score and predictions
 confidence_df = pd.DataFrame(probs)
 test_set['preds'] = predictions
-predictions_df = pd.merge(test_set, test_set[['preds']], how='left', left_index=True, right_index=True)
-predictions_df.to_csv('prediction.csv')
+test_set.to_csv('prediction.csv')
 confidence_df.to_csv('confidence_result1.csv', index=False)
 test_set['predictions'] = predictions
 df1 = pd.read_csv('prediction.csv')
+
 column_names = ['1', '2']
 df = pd.read_csv('confidence_result1.csv', names=column_names, header=None)
 frames = [df, df1]
 result = pd.concat([df1, df], axis=1)
 result.to_csv('one_prediction.csv')
-# print((result['preds_y']).value_counts())
 new = []
 new1 = []
 new2 = []
+
 # get the mean value of the labels
 m1 = np.mean(df['1'])
 m2 = np.mean(df['2'])
-print(m1,m2)
+
 # Adjustable standard deviation value
 l1 = float(arguments.sdvalue)
-
 # get all the offensive and not offensive posts from the dataset
-df_group_posts = result.groupby('preds_y')
+df_group_posts = result.groupby('preds')
 offensive_posts = df_group_posts.get_group(0.0)
 if offensive_posts is not None:
     for ix in offensive_posts.index:
@@ -116,8 +115,6 @@ else:
 
 df_new = result.iloc[np.where(result['1'].isin(new))]
 df_new2 = result.iloc[np.where(result['2'].isin(new2))]
-# df_new3 = result.iloc[np.where(result['3'].isin(new2))]
-# new_dataframe = pd.concat([df_new, df_new2]).drop_duplicates()
 new_dataframe = pd.concat([df_new,df_new2]).drop_duplicates()
 new_dataframe = df_new.filter(['id', 'text', 'preds_y'])
 new_dataframe['preds_y'] = new_dataframe['preds_y'].map({0.0: 'NOT', 1.0: 'OFF'})
@@ -125,10 +122,9 @@ new_dataframe.rename({'text': 'content', 'preds_y': 'Class'}, axis=1, inplace=Tr
 new_dataframe.to_csv('new_train.csv')
 
 test_set.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
-
+# create new dataframe after filtering the rows
 df_nw = pd.read_csv(arguments.train, sep="\t")
 df_merged = df_nw.append(new_dataframe, ignore_index=True)
-# how to replace this to same argument?????
 df_merged.to_csv('data/new_sold.tsv', sep="\t")
 
 

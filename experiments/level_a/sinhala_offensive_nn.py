@@ -42,7 +42,7 @@ elif arguments.lang == "sin":
     train_set = train[['text', 'labels']]
     train_set['labels'] = encode(train_set['labels'])
     test_set = test[['text', 'labels']]
-    test_set['labels'] = encode(test_set['labels'])
+    # test_set['labels'] = encode(test_set['labels'])
 
 
 elif arguments.lang == "hin":
