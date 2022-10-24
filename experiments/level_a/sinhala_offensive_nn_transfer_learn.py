@@ -1,16 +1,13 @@
 import argparse
-import io
 
+import numpy as np
 import pandas as pd
-from gensim.models import KeyedVectors
 from sklearn.model_selection import train_test_split
 
-from offensive_nn.config.sold_config import args
+from offensive_nn.config.sold_config import tl_args
 from offensive_nn.offensive_nn_model import OffensiveNNModel
 from offensive_nn.util.label_converter import encode, decode
 from offensive_nn.util.print_stat import print_information
-
-import numpy as np
 
 parser = argparse.ArgumentParser(
     description='''evaluates multiple models  ''')
@@ -69,42 +66,42 @@ train_set, test_set = retrieve_train_test_sets(arguments.lang)
 
 test_sentences = test_set['text'].tolist()
 
-test_preds = np.zeros((len(test_set), args["n_fold"]))
-args['n_fold'] = 1
-for i in range(args["n_fold"]):
+test_preds = np.zeros((len(test_set), tl_args["n_fold"]))
+tl_args['n_fold'] = 1
+for i in range(tl_args["n_fold"]):
 
     if arguments.transferlearn:
 
         full_train_set = pd.concat([train_set, train_tr_learn])
-        train_set, validation_set = train_test_split(full_train_set, test_size=0.2, random_state=args["manual_seed"])
+        train_set, validation_set = train_test_split(full_train_set, test_size=0.2, random_state=tl_args["manual_seed"])
 
         # pass a list of embeddings and combined datasets
         model = OffensiveNNModel(model_type_or_path=arguments.algorithm,
                                  embedding_model_name_or_path=arguments.model_name,
                                  train_df=train_set,
-                                 args=args, eval_df=validation_set,
+                                 args=tl_args, eval_df=validation_set,
                                  emd_file=arguments.tr_embeddings)
         tl_train_set, tl_validation_set = train_test_split(train_tr_learn, test_size=0.2,
-                                                           random_state=args["manual_seed"])
+                                                           random_state=tl_args["manual_seed"])
         model.transfer_learn_train_model(train_df=tl_train_set, eval_df=tl_validation_set)
         train_set, validation_set = train_test_split(train_set, test_size=0.2,
-                                                     random_state=args["manual_seed"])
+                                                     random_state=tl_args["manual_seed"])
         model.transfer_learn_train_model(train_df=train_set, eval_df=validation_set)
         print("Finished Training")
-        model = OffensiveNNModel(model_type_or_path=args["best_model_dir"])
+        model = OffensiveNNModel(model_type_or_path=tl_args["best_model_dir"])
         predictions, raw_outputs = model.predict(test_sentences)
         test_preds[:, i] = predictions
         print("Completed Fold {}".format(i))
     else:
 
-        train_set, validation_set = train_test_split(train_set, test_size=0.2, random_state=args["manual_seed"])
+        train_set, validation_set = train_test_split(train_set, test_size=0.2, random_state=tl_args["manual_seed"])
         model = OffensiveNNModel(model_type_or_path=arguments.algorithm,
                                  embedding_model_name_or_path=arguments.model_name,
                                  train_df=train_set,
-                                 args=args, eval_df=validation_set)
+                                 args=tl_args, eval_df=validation_set)
         model.train_model()
         print("Finished Training")
-        model = OffensiveNNModel(model_type_or_path=args["best_model_dir"])
+        model = OffensiveNNModel(model_type_or_path=tl_args["best_model_dir"])
         predictions, raw_outputs = model.predict(test_sentences)
         test_preds[:, i] = predictions
         print("Completed Fold {}".format(i))
