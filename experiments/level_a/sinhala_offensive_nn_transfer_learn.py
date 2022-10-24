@@ -67,7 +67,6 @@ train_set, test_set = retrieve_train_test_sets(arguments.lang)
 test_sentences = test_set['text'].tolist()
 
 test_preds = np.zeros((len(test_set), tl_args["n_fold"]))
-tl_args['n_fold'] = 1
 for i in range(tl_args["n_fold"]):
 
     if arguments.transferlearn:
