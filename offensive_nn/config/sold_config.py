@@ -51,7 +51,7 @@ tl_args = {
 
     'manual_seed': 777,
 
-    'n_fold': 1,
+    'n_fold': 3,
 
     'num_classes': 2,
     'num_train_epochs': 150,
