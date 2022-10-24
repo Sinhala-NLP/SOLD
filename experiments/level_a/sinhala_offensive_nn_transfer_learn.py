@@ -70,7 +70,7 @@ train_set, test_set = retrieve_train_test_sets(arguments.lang)
 test_sentences = test_set['text'].tolist()
 
 test_preds = np.zeros((len(test_set), args["n_fold"]))
-
+args['n_fold'] = 1
 for i in range(args["n_fold"]):
 
     if arguments.transferlearn:
@@ -88,7 +88,7 @@ for i in range(args["n_fold"]):
                                                            random_state=args["manual_seed"])
         model.transfer_learn_train_model(train_df=tl_train_set, eval_df=tl_validation_set)
         train_set, validation_set = train_test_split(train_set, test_size=0.2,
-                                                           random_state=args["manual_seed"])
+                                                     random_state=args["manual_seed"])
         model.transfer_learn_train_model(train_df=train_set, eval_df=validation_set)
         print("Finished Training")
         model = OffensiveNNModel(model_type_or_path=args["best_model_dir"])
