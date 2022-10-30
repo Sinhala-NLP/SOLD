@@ -75,7 +75,7 @@ def createDatasetSplit(params):
         # dataset=collect_data(params)
         pass
     else:
-        params['data_file'] = '/content/SOLD/data/SOLD_train.tsv'
+        params['data_file'] = '/content/SOLD/data/SOLD_test.tsv'
 
     if (path.exists(filename[:-7])):
         with open(filename[:-7] + '/test_data.pickle', 'rb') as f:
