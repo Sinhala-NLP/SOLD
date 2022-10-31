@@ -95,6 +95,7 @@ def generate_explanation_dictionary(params):
 
     # TODO: pass by args
     model = ExplainableModel("auto", params['model_name'], args=args,
+                             params = params,
                              use_cuda=torch.cuda.is_available())
 
     final_list_dict = model.get_final_dict_with_rational(params, params['data_file'], topk=5)
@@ -108,14 +109,14 @@ def generate_explanation_dictionary(params):
 
 def convert_to_eraser(params):
     data_all_labelled = pd.read_csv(params['data_file'], sep="\t")
-    data_all_labelled.tokens = data_all_labelled.tokens.str.split()
-    data_all_labelled.rationales = data_all_labelled.rationales.apply(lambda x: ast.literal_eval(x))
+    data_all_labelled['raw_text'] = data_all_labelled['text']
+    data_all_labelled.text = data_all_labelled.tokens.str.split()
+    data_all_labelled.rationales = data_all_labelled.rationales.apply(lambda x: [ast.literal_eval(x)])
     data_all_labelled['final_label'] = data_all_labelled['label']
 
     # TODO: use tokenizer in explainability model
     if (params['bert_tokens']):
         print('Loading tokenizer...')
-        # tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=False)
         tokenizer = AutoTokenizer.from_pretrained(params['model_name'])
     else:
         print('Loading Normal tokenizer...')

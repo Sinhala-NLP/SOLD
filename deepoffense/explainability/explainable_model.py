@@ -2,73 +2,21 @@ import logging
 import os
 import random
 import warnings
-from multiprocessing import cpu_count
 
 from sklearn.preprocessing import LabelEncoder
 
 import numpy as np
 import pandas as pd
 import torch
-from deepoffense.util.label_converter import decode, encode
-from deepoffense.common.deepoffense_config import LANGUAGE_FINETUNE, TEMP_DIRECTORY, SUBMISSION_FOLDER, \
-    MODEL_TYPE, MODEL_NAME, language_modeling_args, args, SEED, RESULT_FILE
 from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, recall_score, precision_score
-from sklearn.utils import class_weight
 import ast
-import json
-from transformers import (
-    WEIGHTS_NAME,
-    AlbertConfig,
-    AlbertTokenizer,
-    BertConfig,
-    BertTokenizer,
-    BertweetTokenizer,
-    CamembertConfig,
-    CamembertTokenizer,
-    DistilBertConfig,
-    DistilBertTokenizer,
-    ElectraConfig,
-    ElectraTokenizer,
-    FlaubertConfig,
-    FlaubertTokenizer,
-    LongformerConfig,
-    LongformerTokenizer,
-    RobertaConfig,
-    RobertaTokenizer,
-    XLMConfig,
-    XLMRobertaConfig,
-    XLMRobertaTokenizer,
-    XLMTokenizer,
-    XLNetConfig,
-    XLNetTokenizer,
-    AutoConfig,
-    AutoModelForSequenceClassification,
-    AutoTokenizer,
-)
-
-from deepoffense.util.label_converter import decode, encode
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
-from deepoffense.classification.classification_utils import LazyClassificationDataset, InputExample, \
-    convert_examples_to_features, sweep_config_to_sweep_values
-
 from deepoffense.explainability.explainable_utils import get_test_data, convert_data, softmax, encodeData, \
-    createDatasetSplit
+    createDatasetSplit, SC_weighted_BERT, combine_features
 
 from deepoffense.classification import ClassificationModel
-from deepoffense.classification.classification_utils import sweep_config_to_sweep_values
-from deepoffense.classification.transformer_models.args.model_args import MultiLabelClassificationArgs, \
-    ClassificationArgs
-from deepoffense.custom_models.models import AlbertForMultiLabelSequenceClassification, \
-    BertweetForMultiLabelSequenceClassification, CamembertForMultiLabelSequenceClassification, \
-    DistilBertForMultiLabelSequenceClassification, ElectraForMultiLabelSequenceClassification, \
-    FlaubertForMultiLabelSequenceClassification, LongformerForMultiLabelSequenceClassification, \
-    RobertaForMultiLabelSequenceClassification, XLMForMultiLabelSequenceClassification, \
-    XLMRobertaForMultiLabelSequenceClassification, XLNetForMultiLabelSequenceClassification, \
-    BertForMultiLabelSequenceClassification
 
 from tqdm.auto import tqdm, trange
-from dataclasses import asdict
-from scipy.stats import mode
 
 from transformers import (
     BertConfig,
@@ -90,18 +38,8 @@ from transformers import (
     XLMRobertaTokenizerFast, XLNetConfig, XLNetTokenizerFast,
 )
 from transformers.convert_graph_to_onnx import convert, quantize
-from transformers.optimization import AdamW, Adafactor
-from transformers.optimization import (
-    get_constant_schedule,
-    get_constant_schedule_with_warmup,
-    get_linear_schedule_with_warmup,
-    get_cosine_schedule_with_warmup,
-    get_cosine_with_hard_restarts_schedule_with_warmup,
-    get_polynomial_decay_schedule_with_warmup,
-)
 
-from deepoffense.classification.classification_utils import LazyClassificationDataset, InputExample, \
-    convert_examples_to_features, sweep_config_to_sweep_values
+from deepoffense.classification.classification_utils import sweep_config_to_sweep_values
 from deepoffense.classification.transformer_models.albert_model import AlbertForSequenceClassification
 from deepoffense.classification.transformer_models.args.model_args import ClassificationArgs
 from deepoffense.classification.transformer_models.bert_model import BertForSequenceClassification
@@ -131,6 +69,7 @@ class ExplainableModel(ClassificationModel):
             self,
             model_type,
             model_name,
+            params,
             num_labels=None,
             weight=None,
             args=None,
@@ -155,7 +94,7 @@ class ExplainableModel(ClassificationModel):
 
         MODEL_CLASSES = {
             "albert": (AlbertConfig, AlbertForSequenceClassification, AlbertTokenizer),
-            "auto": (AutoConfig, AutoModelForSequenceClassification, AutoTokenizer),
+            "auto": (AutoConfig, SC_weighted_BERT, AutoTokenizer),
             "bert": (BertConfig, BertForSequenceClassification, BertTokenizerFast),
             "bertweet": (
                 RobertaConfig,
@@ -296,7 +235,8 @@ class ExplainableModel(ClassificationModel):
                         model_name, config=self.config, weight=torch.Tensor(self.weight).to(self.device), **kwargs,
                     )
                 else:
-                    self.model = model_class.from_pretrained(model_name, config=self.config, **kwargs)
+                    print('load model')
+                    self.model = model_class.from_pretrained(model_name, config=self.config, params=params, **kwargs)
             else:
                 quantized_weights = torch.load(os.path.join(model_name, "pytorch_model.bin"))
                 if self.weight:
@@ -472,35 +412,21 @@ class ExplainableModel(ClassificationModel):
 
         results = {}
 
-        # if(extra_data_path is None):
-        #   my_df = pd.DataFrame()
-
         if (extra_data_path != None):
             temp_read = pd.read_csv(params['data_file'], sep="\t")
-            temp_read.tokens = temp_read.tokens.str.split()
-            temp_read.rationales = temp_read.rationales.apply(lambda x: ast.literal_eval(x))
+            temp_read['raw_text'] = temp_read['text']
+            temp_read.text = temp_read.tokens.str.split()
+            temp_read.rationales = temp_read.rationales.apply(lambda x: [ast.literal_eval(x)])
+            # print(temp_read.iloc[4]['rationales'])
             temp_read['final_label'] = temp_read['label']
             test_data = get_test_data(temp_read, params, self.tokenizer, message='text')
-            eval_examples = [
-                InputExample(i, text, None, label)
-                for i, (text, label) in enumerate(zip(test_data["Raw Text List"].astype(str), test_data["Label"]))
-            ]
+            test_extra = encodeData(test_data, vocab_own, params)
+            eval_dataloader = combine_features(test_extra, params, is_train=False)
         elif (use_ext_df):
-            # eval_df['labels'] = encode(eval_df["labels"])
-            eval_examples = [
-                InputExample(i, text, None, label)
-                for i, (text, label) in enumerate(zip(test_data["Raw Text List"].astype(str), test_data["Label"]))
-            ]
+            test_extra = encodeData(test_data, vocab_own, params)
+            eval_dataloader = combine_features(test_extra, params, is_train=False)
         else:
-            eval_examples = [
-                InputExample(i, text, None, label)
-                for i, (text, label) in enumerate(zip(test["text"].astype(str), test["labels"]))
-            ]
-
-        eval_dataloader = self.load_and_cache_examples(eval_examples, evaluate=True, verbose=verbose,
-                                                       silent=silent)
-
-        # os.makedirs(eval_output_dir, exist_ok=True)
+            eval_dataloader = combine_features(test, params, is_train=False)
 
         if args.n_gpu > 1:
             model = torch.nn.DataParallel(model)
@@ -520,32 +446,29 @@ class ExplainableModel(ClassificationModel):
 
         if ((extra_data_path != None) or (use_ext_df == True)):
             post_id_all = list(test_data['Post_id'])
-            # print(test_data.iloc[0]['Attention'])
-            input_mask_all = list(test_data['Rationales'])
         else:
             post_id_all = list(test['Post_id'])
-            input_mask_all = list(test['Rationales'])
 
         true_labels = []
         pred_labels = []
         logits_all = []
         attention_all = []
+        input_mask_all = []
 
         for i, batch in enumerate(tqdm(eval_dataloader, disable=args.silent or silent, desc="Running Evaluation")):
             # batch = tuple(t.to(self.device) for t in batch)
             # print(batch)
-            # all_input_ids, all_input_mask, all_segment_ids, all_label_ids
+            # b_input_ids, b_att_val, b_input_mask, b_labels
             with torch.no_grad():
-                # inputs = self._get_inputs_dict(batch)
                 b_input_ids = batch[0].to(self.device)
-                all_input_mask = batch[1].to(self.device)
-                all_segment_ids = batch[2].to(self.device)
+                b_att_val = batch[1].to(self.device)
+                b_input_mask = batch[2].to(self.device)
                 b_labels = batch[3].to(self.device)
 
                 outputs = model(b_input_ids,
-                                output_attentions=True,
-                                output_hidden_states=False,
-                                labels=None)
+                                attention_vals=b_att_val,
+                                attention_mask=b_input_mask,
+                                labels=None, device=self.device)
 
                 logits = outputs[0]  # logits
 
@@ -555,19 +478,11 @@ class ExplainableModel(ClassificationModel):
 
             attention_vectors = np.mean(outputs[1][11][:, :, 0, :].detach().cpu().numpy(), axis=1)
 
-            # print('attention vections')
-            # print(attention_vectors)
-            #
-            # input_mask = batch[2].detach().cpu().numpy()
-            # print('input mask')
-            # print(input_mask)
-            # Calculate the accuracy for this batch of test sentences.
-            # Accumulate the total accuracy.
             pred_labels += list(np.argmax(logits, axis=1).flatten())
             true_labels += list(label_ids.flatten())
             logits_all += list(logits)
             attention_all += list(attention_vectors)
-            # input_mask_all += list(input_mask)
+            input_mask_all += list(batch[2].detach().cpu().numpy())
 
         logits_all_final = []
         for logits in logits_all:
@@ -601,6 +516,7 @@ class ExplainableModel(ClassificationModel):
             temp = {}
             encoder = LabelEncoder()
             encoder.classes_ = np.load(params['class_names'], allow_pickle=True)
+            # print(encoder.classes_)
             pred_label = encoder.inverse_transform([pred])[0]
 
             temp["annotation_id"] = post_id
@@ -727,6 +643,7 @@ class ExplainableModel(ClassificationModel):
             features = [feature for feature_set in features for feature in feature_set]
 
         all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)
+        all_att_vals = torch.tensor([f.att_vals for f in features], dtype=torch.long)
         all_input_mask = torch.tensor([f.input_mask for f in features], dtype=torch.long)
         all_segment_ids = torch.tensor([f.segment_ids for f in features], dtype=torch.long)
 
@@ -778,17 +695,3 @@ class ExplainableModel(ClassificationModel):
         return final_list_dict
 
 
-class NumpyEncoder(json.JSONEncoder):
-    """ Special json encoder for numpy types """
-
-    def default(self, obj):
-        if isinstance(obj, (np.int_, np.intc, np.intp, np.int8,
-                            np.int16, np.int32, np.int64, np.uint8,
-                            np.uint16, np.uint32, np.uint64)):
-            return int(obj)
-        elif isinstance(obj, (np.float_, np.float16, np.float32,
-                              np.float64)):
-            return float(obj)
-        elif isinstance(obj, (np.ndarray,)):  #### This is the fix
-            return obj.tolist()
-        return json.JSONEncoder.default(self, obj)

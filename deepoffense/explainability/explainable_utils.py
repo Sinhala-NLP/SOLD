@@ -3,7 +3,6 @@ import numpy as np
 from numpy import array, exp
 import pandas as pd
 from multiprocessing import Pool, cpu_count
-import time
 import datetime
 from os import path
 import pickle
@@ -18,6 +17,97 @@ import re
 import os
 import more_itertools as mit
 import json
+from transformers.models.bert.modeling_bert import *
+from sklearn.preprocessing import LabelEncoder
+from keras.preprocessing.sequence import pad_sequences
+import torch
+from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
+
+
+def cross_entropy(input1, target, size_average=True):
+    """ Cross entropy that accepts soft targets
+    Args:
+         pred: predictions for neural network
+         targets: targets, can be soft
+         size_average: if false, sum is returned instead of mean
+    Examples::
+        input = torch.FloatTensor([[1.1, 2.8, 1.3], [1.1, 2.1, 4.8]])
+        input = torch.autograd.Variable(out, requires_grad=True)
+        target = torch.FloatTensor([[0.05, 0.9, 0.05], [0.05, 0.05, 0.9]])
+        target = torch.autograd.Variable(y1)
+        loss = cross_entropy(input, target)
+        loss.backward()
+    """
+    logsoftmax = nn.LogSoftmax(dim=0)
+    return torch.sum(-target * logsoftmax(input1))
+
+
+def masked_cross_entropy(input1, target, mask):
+    cr_ent = 0
+    for h in range(0, mask.shape[0]):
+        cr_ent += cross_entropy(input1[h][mask[h]], target[h][mask[h]])
+
+    return cr_ent / mask.shape[0]
+
+
+class SC_weighted_BERT(BertPreTrainedModel):
+    def __init__(self, config, params):
+        super().__init__(config)
+        self.num_labels = config.num_labels
+        self.weights = params['weights']
+        self.train_att = params['train_att']
+        self.lam = params['att_lambda']
+        self.num_sv_heads = params['num_supervised_heads']
+        self.sv_layer = params['supervised_layer_pos']
+        self.bert = BertModel(config)
+        self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        self.classifier = nn.Linear(config.hidden_size, config.num_labels)
+        # self.softmax=nn.Softmax(config.num_labels)
+        self.init_weights()
+
+    def forward(self,
+                input_ids=None,
+                attention_mask=None,
+                attention_vals=None,
+                token_type_ids=None,
+                position_ids=None,
+                head_mask=None,
+                inputs_embeds=None,
+                labels=None,
+                device=None):
+
+        outputs = self.bert(
+            input_ids,
+            attention_mask=attention_mask,
+            token_type_ids=token_type_ids,
+            position_ids=position_ids,
+            head_mask=head_mask,
+            inputs_embeds=inputs_embeds,
+        )
+
+        pooled_output = outputs[1]
+
+        pooled_output = self.dropout(pooled_output)
+        logits = self.classifier(pooled_output)
+        # logits = self.softmax(logits)
+
+        outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
+
+        if labels is not None:
+            loss_funct = CrossEntropyLoss(weight=torch.tensor(self.weights).to(device))
+            loss_logits = loss_funct(logits.view(-1, self.num_labels), labels.view(-1))
+            loss = loss_logits
+            if (self.train_att):
+
+                loss_att = 0
+                for i in range(self.num_sv_heads):
+                    attention_weights = outputs[1][self.sv_layer][:, i, 0, :]
+                    loss_att += self.lam * masked_cross_entropy(attention_weights, attention_vals, attention_mask)
+                loss = loss + loss_att
+            outputs = (loss,) + outputs
+
+        return outputs  # (loss), logits, (hidden_states), (attentions)
+
 
 #### Few helper functions to convert attention vectors in 0 to 1 scale. While softmax converts all the values such that their sum lies between 0 --> 1. Sigmoid converts each value in the vector in the range 0 -> 1.
 def encodeData(dataframe, vocab, params):
@@ -61,10 +151,13 @@ def collect_data(params):
     # TODO: Add a fork here
     # data_all_labelled=get_annotated_data(params)
     data_all_labelled = pd.read_csv(params['data_file'], sep="\t")  # , nrows=10)
-    data_all_labelled.tokens = data_all_labelled.tokens.str.split()
-    data_all_labelled.rationales = data_all_labelled.rationales.apply(lambda x: ast.literal_eval(x))
+    data_all_labelled['raw_text'] = data_all_labelled['text']
+    data_all_labelled.text = data_all_labelled.tokens.str.split()
+    data_all_labelled.rationales = data_all_labelled.rationales.apply(lambda x: [ast.literal_eval(x)])
     data_all_labelled['final_label'] = data_all_labelled['label']
-    train_data = get_training_data(data_all_labelled, params, tokenizer)
+    print(data_all_labelled.iloc[4]['rationales'])
+    train_data = get_test_data(data_all_labelled, params, tokenizer,
+                               message='text')  # get_training_data(data_all_labelled, params, tokenizer)
     return train_data
 
 
@@ -266,26 +359,28 @@ def sigmoid(z):
 
 
 def returnMask(row, params, tokenizer):
-    text_tokens = row['tokens']
+    text_tokens = row['text']
 
     ##### a very rare corner case
     if (len(text_tokens) == 0):
         text_tokens = ['dummy']
         print("length of text ==0")
     #####
-
     mask_all = row['rationales']
     mask_all_temp = mask_all
+    if len(mask_all[0]) == 0:
+        mask_all_temp = []
+    # if row['post_id'] == 1305480579375198208:
+    # print(mask_all)
     count_temp = 0
-    if len(mask_all_temp) == 0:
+    while (len(mask_all_temp) != 1):
         mask_all_temp.append([0] * len(text_tokens))
-    else:
-        mask_all_temp = [mask_all]
 
     word_mask_all = []
     word_tokens_all = []
 
     for mask in mask_all_temp:
+
         if (mask[0] == -1):
             mask = [0] * len(mask)
 
@@ -337,23 +432,22 @@ def returnMask(row, params, tokenizer):
         word_mask_all.append(word_mask)
         word_tokens_all.append(word_tokens)
 
-    #     for k in range(0,len(mask_all)):
-    #          if(mask_all[k][0]==-1):
-    #             word_mask_all[k] = [-1]*len(word_mask_all[k])
+        #     for k in range(0,len(mask_all)):
+        #          if(mask_all[k][0]==-1):
+        #             word_mask_all[k] = [-1]*len(word_mask_all[k])
     if (len(mask_all) == 0):
         word_mask_all = []
     else:
         word_mask_all = word_mask_all[0:len(mask_all)]
     return word_tokens_all[0], word_mask_all
 
-
 def aggregate_attention(at_mask, row, params):
     """input: attention vectors from 2/3 annotators (at_mask), row(dataframe row), params(parameters_dict)
-       function: aggregate attention from different annotators.
-       output: aggregated attention vector"""
+           function: aggregate attention from different annotators.
+           output: aggregated attention vector"""
 
     #### If the final label is normal or non-toxic then each value is represented by 1/len(sentences)
-    if (row['final_label'] in ['normal', 'non-toxic']):
+    if (row['final_label'] in ['NOT']):
         at_mask_fin = [1 / len(at_mask[0]) for x in at_mask[0]]
     else:
         at_mask_fin = at_mask
@@ -376,7 +470,6 @@ def aggregate_attention(at_mask, row, params):
         at_mask_fin = decay(at_mask_fin, params)
 
     return at_mask_fin
-
 
 ##### Decay and distribution functions.To decay the attentions left and right of the attented word. This is done to decentralise the attention to a single word.
 def distribute(old_distribution, new_distribution, index, left, right, params):
@@ -439,7 +532,7 @@ def decay(old_distribution, params):
     return new_distribution
 
 
-def get_test_data(data, params, tokenizer = None, message='text'):
+def get_test_data(data, params, tokenizer=None, message='text'):
     '''input: data is a dataframe text ids labels column only'''
     '''output: training data in the columns post_id,text (tokens) , attentions (normal) and labels'''
     post_ids_list = []
@@ -447,28 +540,26 @@ def get_test_data(data, params, tokenizer = None, message='text'):
     attention_list = []
     label_list = []
     raw_text_list = []
-    rationale_list = []
+
     print('total_data', len(data))
     for index, row in tqdm(data.iterrows(), total=len(data)):
         post_id = row['post_id']
         annotation = row['final_label']
-        text = row['text']
-        rationales = row['rationales']
+        raw_text = row['raw_text']
         tokens_all, attention_masks = returnMask(row, params, tokenizer)
         attention_vector = aggregate_attention(attention_masks, row, params)
         attention_list.append(attention_vector)
         text_list.append(tokens_all)
         label_list.append(annotation)
         post_ids_list.append(post_id)
-        raw_text_list.append(text)
-        rationale_list.append(rationales)
+        raw_text_list.append(raw_text)
 
-    # Calling DataFrame constructor after zipping
-    # both lists, with columns specified
-    training_data = pd.DataFrame(list(zip(post_ids_list, text_list, attention_list, label_list, raw_text_list, rationale_list)),
-                                 columns=['Post_id', 'Text', 'Attention', 'Label', 'Raw Text List', 'Rationales'])
+        # Calling DataFrame constructor after zipping
+        # both lists, with columns specified
+    training_data = pd.DataFrame(list(zip(post_ids_list, text_list, attention_list, label_list, raw_text_list)),
+                                 columns=['Post_id', 'Text', 'Attention', 'Label', 'Raw_text'])
+
     return training_data
-
 
 # Load the whole dataset and get the tokenwise rationales
 def get_training_data_eraser(data, params, tokenizer):
@@ -495,477 +586,52 @@ def get_training_data_eraser(data, params, tokenizer):
     return final_binny_output
 
 
-def get_training_data(data, params, tokenizer):
-    '''input: data is a dataframe text ids attentions labels column only'''
-    '''output: training data in the columns post_id,text, attention and labels '''
-
-    majority = params['majority']
-    post_ids_list = []
-    text_list = []
-    attention_list = []
-    label_list = []
-    count = 0
-    count_confused = 0
-    raw_text_list = []
-    rationale_list = []
-    print('total_data', len(data))
-    for index, row in tqdm(data.iterrows(), total=len(data)):
-        # print(row)
-        # print(params)
-        text = row['text']
-        post_id = row['post_id']
-
-        # annotation_list=[row['label'],row['label2'],row['label3']]
-        annotation = row['label']
-        rationales = row['rationales']
-
-        if (annotation != 'undecided'):
-            tokens_all, attention_masks = returnMask(row, params, tokenizer)
-            attention_vector = aggregate_attention(attention_masks, row, params)
-            attention_list.append(attention_vector)
-            text_list.append(tokens_all)
-            label_list.append(annotation)
-            post_ids_list.append(post_id)
-            raw_text_list.append(text)
-            rationale_list.append(rationales)
-        else:
-            count_confused += 1
-
-    print("attention_error:", count)
-    print("no_majority:", count_confused)
-    # Calling DataFrame constructor after zipping
-    # both lists, with columns specified
-    training_data = pd.DataFrame(list(zip(post_ids_list, text_list, attention_list, label_list, raw_text_list, rationale_list)),
-                                 columns=['Post_id', 'Text', 'Attention', 'Label', 'Raw Text List', 'Rationales'])
-
-    filename = set_name(params)
-    training_data.to_pickle(filename)
-    return training_data
-
-
 # TODO: remove else of params['bert_tokens'] checks
 
-def convert_examples_to_features(
-        examples,
-        max_seq_length,
-        tokenizer,
-        output_mode,
-        cls_token_at_end=False,
-        sep_token_extra=False,
-        pad_on_left=False,
-        cls_token="[CLS]",
-        sep_token="[SEP]",
-        pad_token=0,
-        sequence_a_segment_id=0,
-        sequence_b_segment_id=1,
-        cls_token_segment_id=1,
-        pad_token_segment_id=0,
-        mask_padding_with_zero=True,
-        process_count=cpu_count() - 2,
-        multi_label=False,
-        silent=False,
-        use_multiprocessing=True,
-        sliding_window=False,
-        flatten=False,
-        stride=None,
-        add_prefix_space=False,
-        pad_to_max_length=True,
-        args=None,
-):
-    """Loads a data file into a list of `InputBatch`s
-    `cls_token_at_end` define the location of the CLS token:
-        - False (Default, BERT/XLM pattern): [CLS] + A + [SEP] + B + [SEP]
-        - True (XLNet/GPT pattern): A + [SEP] + B + [SEP] + [CLS]
-    `cls_token_segment_id` define the segment id associated to the CLS token (0 for BERT, 2 for XLNet)
-    """
+def combine_features(tuple_data, params, is_train=False):
+    input_ids = [ele[0] for ele in tuple_data]
+    att_vals = [ele[1] for ele in tuple_data]
+    labels = [ele[2] for ele in tuple_data]
 
-    examples = [
-        (
-            example,
-            max_seq_length,
-            tokenizer,
-            output_mode,
-            cls_token_at_end,
-            cls_token,
-            sep_token,
-            cls_token_segment_id,
-            pad_on_left,
-            pad_token_segment_id,
-            sep_token_extra,
-            multi_label,
-            stride,
-            pad_token,
-            add_prefix_space,
-            pad_to_max_length,
-        )
-        for example in examples
-    ]
+    encoder = LabelEncoder()
 
-    if use_multiprocessing:
-        if args.multiprocessing_chunksize == -1:
-            chunksize = max(len(examples) // (args.process_count * 2), 500)
-        else:
-            chunksize = args.multiprocessing_chunksize
-        if sliding_window:
-            with Pool(process_count) as p:
-                features = list(
-                    tqdm(
-                        p.imap(
-                            convert_example_to_feature_sliding_window,
-                            examples,
-                            chunksize=chunksize,
-                        ),
-                        total=len(examples),
-                        disable=silent,
-                    )
-                )
-            if flatten:
-                features = [
-                    feature for feature_set in features for feature in feature_set
-                ]
-        else:
-            with Pool(process_count) as p:
-                features = list(
-                    tqdm(
-                        p.imap(
-                            convert_example_to_feature, examples, chunksize=chunksize
-                        ),
-                        total=len(examples),
-                        disable=silent,
-                    )
-                )
-    else:
-        if sliding_window:
-            features = [
-                convert_example_to_feature_sliding_window(example)
-                for example in tqdm(examples, disable=silent)
-            ]
-            if flatten:
-                features = [
-                    feature for feature_set in features for feature in feature_set
-                ]
-        else:
-            features = [
-                convert_example_to_feature(example)
-                for example in tqdm(examples, disable=silent)
-            ]
+    encoder.classes_ = np.load(params['class_names'], allow_pickle=True)
+    labels = encoder.transform(labels)
 
-    return features
+    input_ids = pad_sequences(input_ids, maxlen=int(params['max_length']), dtype="long",
+                              value=0, truncating="post", padding="post")
+    att_vals = pad_sequences(att_vals, maxlen=int(params['max_length']), dtype="float",
+                             value=0.0, truncating="post", padding="post")
+    att_masks = custom_att_masks(input_ids)
+    dataloader = return_dataloader(input_ids, labels, att_vals, att_masks, params, is_train)
+    return dataloader
 
 
-def convert_example_to_feature(
-        example_row,
-        params,
-        pad_token=0,
-        sequence_a_segment_id=0,
-        sequence_b_segment_id=1,
-        cls_token_segment_id=1,
-        pad_token_segment_id=0,
-        mask_padding_with_zero=True,
-        sep_token_extra=False,
-):
-    (
-        example,
-        max_seq_length,
-        tokenizer,
-        output_mode,
-        cls_token_at_end,
-        cls_token,
-        sep_token,
-        cls_token_segment_id,
-        pad_on_left,
-        pad_token_segment_id,
-        sep_token_extra,
-        multi_label,
-        stride,
-        pad_token,
-        add_prefix_space,
-        pad_to_max_length,
-    ) = example_row
+def return_dataloader(input_ids, labels, att_vals, att_masks, params, is_train=False):
+    inputs = torch.tensor(input_ids)
+    labels = torch.tensor(labels, dtype=torch.long)
+    masks = torch.tensor(np.array(att_masks), dtype=torch.uint8)
+    attention = torch.tensor(np.array(att_vals), dtype=torch.float)
+    data = TensorDataset(inputs, attention, masks, labels)
+    sampler = SequentialSampler(data)
 
-    bboxes = []
-    if example.bboxes:
-        tokens_a = []
-        for word, bbox in zip(example.text_a.split(), example.bboxes):
-            word_tokens = tokenizer.tokenize(word)
-            tokens_a.extend(word_tokens)
-            bboxes.extend([bbox] * len(word_tokens))
-
-        cls_token_box = [0, 0, 0, 0]
-        sep_token_box = [1000, 1000, 1000, 1000]
-        pad_token_box = [0, 0, 0, 0]
-
-    else:
-        if add_prefix_space and not example.text_a.startswith(" "):
-            tokens_a = tokenizer.tokenize(" " + example.text_a)
-        else:
-            tokens_a = tokenizer.tokenize(example.text_a)
-
-    tokens_b = None
-    if example.text_b:
-        if add_prefix_space and not example.text_b.startswith(" "):
-            tokens_b = tokenizer.tokenize(" " + example.text_b)
-        else:
-            tokens_b = tokenizer.tokenize(example.text_b)
-        # Modifies `tokens_a` and `tokens_b` in place so that the total
-        # length is less than the specified length.
-        # Account for [CLS], [SEP], [SEP] with "- 3". " -4" for RoBERTa.
-        special_tokens_count = 4 if sep_token_extra else 3
-        _truncate_seq_pair(tokens_a, tokens_b, max_seq_length - special_tokens_count)
-    else:
-        # Account for [CLS] and [SEP] with "- 2" and with "- 3" for RoBERTa.
-        special_tokens_count = 3 if sep_token_extra else 2
-        if len(tokens_a) > max_seq_length - special_tokens_count:
-            tokens_a = tokens_a[: (max_seq_length - special_tokens_count)]
-            if example.bboxes:
-                bboxes = bboxes[: (max_seq_length - special_tokens_count)]
-
-    # The convention in BERT is:
-    # (a) For sequence pairs:
-    #  tokens:   [CLS] is this jack ##son ##ville ? [SEP] no it is not . [SEP]
-    #  type_ids:   0   0  0    0    0     0       0   0   1  1  1  1   1   1
-    # (b) For single sequences:
-    #  tokens:   [CLS] the dog is hairy . [SEP]
-    #  type_ids:   0   0   0   0  0     0   0
-    #
-    # Where "type_ids" are used to indicate whether this is the first
-    # sequence or the second sequence. The embedding vectors for `type=0` and
-    # `type=1` were learned during pre-training and are added to the wordpiece
-    # embedding vector (and position vector). This is not *strictly* necessary
-    # since the [SEP] token unambiguously separates the sequences, but it makes
-    # it easier for the model to learn the concept of sequences.
-    #
-    # For classification tasks, the first vector (corresponding to [CLS]) is
-    # used as as the "sentence vector". Note that this only makes sense because
-    # the entire model is fine-tuned.
-    tokens = tokens_a + [sep_token]
-    segment_ids = [sequence_a_segment_id] * len(tokens)
-
-    if bboxes:
-        bboxes += [sep_token_box]
-
-    if tokens_b:
-        if sep_token_extra:
-            tokens += [sep_token]
-            segment_ids += [sequence_b_segment_id]
-
-        tokens += tokens_b + [sep_token]
-
-        segment_ids += [sequence_b_segment_id] * (len(tokens_b) + 1)
-
-    if cls_token_at_end:
-        tokens = tokens + [cls_token]
-        segment_ids = segment_ids + [cls_token_segment_id]
-    else:
-        tokens = [cls_token] + tokens
-        segment_ids = [cls_token_segment_id] + segment_ids
-        if bboxes:
-            bboxes = [cls_token_box] + bboxes
-
-    input_ids = tokenizer.convert_tokens_to_ids(tokens)
-
-    # The mask has 1 for real tokens and 0 for padding tokens. Only real
-    # tokens are attended to.
-    input_mask = [1 if mask_padding_with_zero else 0] * len(input_ids)
-    tokens_all, attention_mask = returnMask(example, params, tokenizer)
-
-    # Zero-pad up to the sequence length.
-    if pad_to_max_length:
-        padding_length = max_seq_length - len(input_ids)
-        if pad_on_left:
-            input_ids = ([pad_token] * padding_length) + input_ids
-            input_mask = (
-                                 [0 if mask_padding_with_zero else 1] * padding_length
-                         ) + input_mask
-            attention_mask = (
-                                     [0 if mask_padding_with_zero else 1] * padding_length
-                             ) + attention_mask
-            segment_ids = ([pad_token_segment_id] * padding_length) + segment_ids
-        else:
-            input_ids = input_ids + ([pad_token] * padding_length)
-            input_mask = input_mask + (
-                    [0 if mask_padding_with_zero else 1] * padding_length
-            )
-            attention_mask = attention_mask + (
-                    [0 if mask_padding_with_zero else 1] * padding_length
-            )
-            segment_ids = segment_ids + ([pad_token_segment_id] * padding_length)
-            if bboxes:
-                bboxes += [pad_token_box] * padding_length
-
-        assert len(input_ids) == max_seq_length
-        assert len(input_mask) == max_seq_length
-        assert len(segment_ids) == max_seq_length
-        if bboxes:
-            assert len(bboxes) == max_seq_length
-    # if output_mode == "classification":
-    #     label_id = label_map[example.label]
-    # elif output_mode == "regression":
-    #     label_id = float(example.label)
-    # else:
-    #     raise KeyError(output_mode)
-
-    # if output_mode == "regression":
-    #     label_id = float(example.label)
-
-    if bboxes:
-        return InputFeaturesWithRationales(
-            input_ids=input_ids,
-            input_mask=input_mask,
-            segment_ids=segment_ids,
-            label_id=example.label,
-            attention_mask=attention_mask,
-            bboxes=bboxes,
-        )
-    else:
-        return InputFeaturesWithRationales(
-            input_ids=input_ids,
-            input_mask=input_mask,
-            segment_ids=segment_ids,
-            attention_mask=attention_mask,
-            label_id=example.label,
-        )
+    dataloader = DataLoader(data, sampler=sampler, batch_size=params['batch_size'])
+    return dataloader
 
 
-def convert_example_to_feature_sliding_window(
-        example_row,
-        params,
-        pad_token=0,
-        sequence_a_segment_id=0,
-        sequence_b_segment_id=1,
-        cls_token_segment_id=1,
-        pad_token_segment_id=0,
-        mask_padding_with_zero=True,
-        sep_token_extra=False,
-):
-    (
-        example,
-        max_seq_length,
-        tokenizer,
-        output_mode,
-        cls_token_at_end,
-        cls_token,
-        sep_token,
-        cls_token_segment_id,
-        pad_on_left,
-        pad_token_segment_id,
-        sep_token_extra,
-        multi_label,
-        stride,
-        pad_token,
-        add_prefix_space,
-        pad_to_max_length,
-    ) = example_row
+def custom_att_masks(input_ids):
+    attention_masks = []
 
-    if stride < 1:
-        stride = int(max_seq_length * stride)
+    # For each sentence...
+    for sent in input_ids:
+        # Create the attention mask.
+        #   - If a token ID is 0, then it's padding, set the mask to 0.
+        #   - If a token ID is > 0, then it's a real token, set the mask to 1.
+        att_mask = [int(token_id > 0) for token_id in sent]
 
-    bucket_size = max_seq_length - (3 if sep_token_extra else 2)
-    token_sets = []
-
-    if add_prefix_space and not example.text_a.startswith(" "):
-        tokens_a = tokenizer.tokenize(" " + example.text_a)
-    else:
-        tokens_a = tokenizer.tokenize(example.text_a)
-
-    if len(tokens_a) > bucket_size:
-        token_sets = [
-            tokens_a[i: i + bucket_size] for i in range(0, len(tokens_a), stride)
-        ]
-    else:
-        token_sets.append(tokens_a)
-
-    if example.text_b:
-        raise ValueError(
-            "Sequence pair tasks not implemented for sliding window tokenization."
-        )
-
-    # The convention in BERT is:
-    # (a) For sequence pairs:
-    #  tokens:   [CLS] is this jack ##son ##ville ? [SEP] no it is not . [SEP]
-    #  type_ids:   0   0  0    0    0     0       0   0   1  1  1  1   1   1
-    # (b) For single sequences:
-    #  tokens:   [CLS] the dog is hairy . [SEP]
-    #  type_ids:   0   0   0   0  0     0   0
-    #
-    # Where "type_ids" are used to indicate whether this is the first
-    # sequence or the second sequence. The embedding vectors for `type=0` and
-    # `type=1` were learned during pre-training and are added to the wordpiece
-    # embedding vector (and position vector). This is not *strictly* necessary
-    # since the [SEP] token unambiguously separates the sequences, but it makes
-    # it easier for the model to learn the concept of sequences.
-    #
-    # For classification tasks, the first vector (corresponding to [CLS]) is
-    # used as as the "sentence vector". Note that this only makes sense because
-    # the entire model is fine-tuned.
-
-    input_features = []
-    for tokens_a in token_sets:
-        tokens = tokens_a + [sep_token]
-        segment_ids = [sequence_a_segment_id] * len(tokens)
-
-        if cls_token_at_end:
-            tokens = tokens + [cls_token]
-            segment_ids = segment_ids + [cls_token_segment_id]
-        else:
-            tokens = [cls_token] + tokens
-            segment_ids = [cls_token_segment_id] + segment_ids
-
-        input_ids = tokenizer.convert_tokens_to_ids(tokens)
-
-        # The mask has 1 for real tokens and 0 for padding tokens. Only real
-        # tokens are attended to.
-        input_mask = [1 if mask_padding_with_zero else 0] * len(input_ids)
-
-        # Zero-pad up to the sequence length.
-        padding_length = max_seq_length - len(input_ids)
-        if pad_on_left:
-            input_ids = ([pad_token] * padding_length) + input_ids
-            input_mask = (
-                                 [0 if mask_padding_with_zero else 1] * padding_length
-                         ) + input_mask
-            segment_ids = ([pad_token_segment_id] * padding_length) + segment_ids
-        else:
-            input_ids = input_ids + ([pad_token] * padding_length)
-            input_mask = input_mask + (
-                    [0 if mask_padding_with_zero else 1] * padding_length
-            )
-            segment_ids = segment_ids + ([pad_token_segment_id] * padding_length)
-
-        assert len(input_ids) == max_seq_length
-        assert len(input_mask) == max_seq_length
-        assert len(segment_ids) == max_seq_length
-
-        # if output_mode == "classification":
-        #     label_id = label_map[example.label]
-        # elif output_mode == "regression":
-        #     label_id = float(example.label)
-        # else:
-        #     raise KeyError(output_mode)
-
-        input_features.append(
-            InputFeatures(
-                input_ids=input_ids,
-                input_mask=input_mask,
-                segment_ids=segment_ids,
-                label_id=example.label,
-            )
-        )
-
-    return input_features
-
-
-class InputFeaturesWithRationales(object):
-    """A single set of features of data."""
-
-    def __init__(self, input_ids, input_mask, segment_ids, label_id, attention_mask, bboxes=None):
-        self.input_ids = input_ids
-        self.input_mask = input_mask
-        self.segment_ids = segment_ids
-        self.label_id = label_id
-        self.attention_mask = attention_mask
-        if bboxes:
-            self.bboxes = bboxes
+        # Store the attention mask for this sentence.
+        attention_masks.append(att_mask)
+    return attention_masks
 
 
 def convert_data(test_data, params, list_dict, rational_present=True, topk=2):
@@ -1004,7 +670,7 @@ def convert_data(test_data, params, list_dict, rational_present=True, topk=2):
                 if (i not in topk_indices):
                     new_text.append(row['Text'][i])
                     new_attention.append(row['Attention'][i])
-        test_data_modified.append([row['Post_id'], new_text, new_attention, row['Label'], row['Raw Text List'], row['Rationales']])
+        test_data_modified.append([row['Post_id'], new_text, new_attention, row['Label'], row['Raw_text']])
 
     df = pd.DataFrame(test_data_modified, columns=test_data.columns)
     return df
@@ -1047,25 +713,25 @@ def find_ranges(iterable):
 def get_evidence(post_id, anno_text, explanations):
     output = []
 
-    indexes = sorted([i for i, each in enumerate(explanations) if each==1])
+    indexes = sorted([i for i, each in enumerate(explanations) if each == 1])
     span_list = list(find_ranges(indexes))
 
     for each in span_list:
-        if type(each)== int:
+        if type(each) == int:
             start = each
-            end = each+1
+            end = each + 1
         elif len(each) == 2:
             start = each[0]
-            end = each[1]+1
+            end = each[1] + 1
         else:
             print('error')
 
-        output.append({"docid":post_id,
-              "end_sentence": -1,
-              "end_token": end,
-              "start_sentence": -1,
-              "start_token": start,
-              "text": ' '.join([str(x) for x in anno_text[start:end]])})
+        output.append({"docid": post_id,
+                       "end_sentence": -1,
+                       "end_token": end,
+                       "start_sentence": -1,
+                       "start_token": start,
+                       "text": ' '.join([str(x) for x in anno_text[start:end]])})
     return output
 
 
@@ -1086,7 +752,7 @@ def convert_to_eraser_format(dataset, method, save_split, save_path, id_division
         anno_text_list = eachrow[2]
         majority_label = eachrow[1]
 
-        if majority_label == 'normal':
+        if majority_label == 'NOT':
             continue
 
         all_labels = eachrow[4]
