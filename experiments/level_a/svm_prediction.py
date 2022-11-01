@@ -67,10 +67,10 @@ test_matrix = tfidf.fit_transform(test['text'])
 print(training_matrix)
 
 for i in range(args["n_fold"]):
-    model = svm.SVC(C=1.0, kernel='linear', degree=3, gamma='auto')
+    model = svm.SVC(C=1.0, kernel='linear', degree=3, gamma='auto',probability=True)
     model.fit(training_matrix, train['labels'])
-    predictions, raw_outputs  = model.predict(test_matrix)
-    probs = softmax(raw_outputs, axis=1)
+    predictions = model.predict(test_matrix)
+    probs = model.predict_proba(test_matrix)
     test_preds[:, i] = predictions
     print("Completed Fold {}".format(i))
 

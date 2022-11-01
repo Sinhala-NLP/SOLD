@@ -68,7 +68,7 @@ for i in range(args["n_fold"]):
     model.train_model()
     print("Finished Training")
     model = OffensiveNNModel(model_type_or_path=args["best_model_dir"])
-    predictions, raw_outputs = model.predict(test_sentences)
+    predictions = model.predict(test_sentences)
     test_preds[:, i] = predictions
     print("Completed Fold {}".format(i))
 
