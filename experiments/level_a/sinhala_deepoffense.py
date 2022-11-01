@@ -28,6 +28,7 @@ parser.add_argument('--cuda_device', required=False, help='cuda device', default
 parser.add_argument('--train', required=False, help='train file', default='data/SOLD_train.tsv')
 parser.add_argument('--test', required=False, help='test file', default='data/SOLD_test.tsv')
 parser.add_argument('--lang', required=False, help='language', default="sin")  # en or sin or hin
+parser.add_argument('--lr', required=False, help='learning rate', default=None)  # en or sin or hin
 arguments = parser.parse_args()
 
 trn_data = pd.read_csv(arguments.train, sep="\t")
@@ -47,7 +48,6 @@ elif arguments.lang == "hin":
 # load training data
 train = trn_data[['text', 'labels']]
 test = tst_data[['text', 'labels']]
-
 
 if LANGUAGE_FINETUNE:
     train_list = train['text'].tolist()
@@ -81,6 +81,10 @@ test_preds = np.zeros((len(test), args["n_fold"]))
 MODEL_NAME = arguments.model_name
 MODEL_TYPE = arguments.model_type
 cuda_device = int(arguments.cuda_device)
+
+if arguments.lr is not None:
+    learning_rate = float(arguments.lr)
+    args['learning_rate'] = learning_rate
 
 if args["evaluate_during_training"]:
     if os.path.exists(args['output_dir']) and os.path.isdir(args['output_dir']):
