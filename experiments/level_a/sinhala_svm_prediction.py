@@ -2,25 +2,18 @@ import argparse
 import os
 import numpy as np
 import pandas as pd
-
-from deepoffense.classification import ClassificationModel
-from deepoffense.common.deepoffense_config import LANGUAGE_FINETUNE, TEMP_DIRECTORY, SUBMISSION_FOLDER, \
-    MODEL_TYPE, MODEL_NAME, language_modeling_args, args, SEED, RESULT_FILE
+from svm_config.sold_config import args
+# from deepoffense.common.deepoffense_config import LANGUAGE_FINETUNE, TEMP_DIRECTORY, SUBMISSION_FOLDER, \
+#     MODEL_TYPE, MODEL_NAME, language_modeling_args, args, SEED, RESULT_FILE
 from deepoffense.util.label_converter import decode, encode
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn import svm
-from scipy.special import softmax
-from offensive_nn.util.print_stat import print_information
-
-if not os.path.exists(TEMP_DIRECTORY): os.makedirs(TEMP_DIRECTORY)
-if not os.path.exists(os.path.join(TEMP_DIRECTORY, SUBMISSION_FOLDER)): os.makedirs(
-    os.path.join(TEMP_DIRECTORY, SUBMISSION_FOLDER))
 
 parser = argparse.ArgumentParser(
     description='''evaluates multiple models  ''')
 parser.add_argument('--cuda_device', required=False, help='cuda device', default=0)
-parser.add_argument('--train', required=False, help='train file', default='data/abc.tsv')
-parser.add_argument('--test', required=False, help='test file', default='data/aaa.tsv')
+parser.add_argument('--train', required=False, help='train file', default='data/SOLD_train.tsv')
+parser.add_argument('--test', required=False, help='test file', default='data/SOLD_test.tsv')
 parser.add_argument('--lang', required=False, help='language', default="sin")  # en or sin or hin
 parser.add_argument('--sdvalue', required=False, help='language', default=0.01)
 arguments = parser.parse_args()
@@ -50,13 +43,13 @@ test_preds = np.zeros((len(test), args["n_fold"]))
 all_text = train_list + test_list
 
 def flatten_words(list1d, get_unique=False):
-    qa = [s.split() for s in list1d]
+    wordlist = [s.split() for s in list1d]
     if get_unique:
-        y = sorted(list(set([w for sent in qa for w in sent])))
-        return y
+        u_list = sorted(list(set([w for sent in wordlist for w in sent])))
+        return u_list
     else:
-        e = [w for sent in qa for w in sent ]
-        return e
+        n_list = [w for sent in wordlist for w in sent ]
+        return n_list
 
 # create vocabulary based on the size of data
 vocab = flatten_words(all_text, get_unique=True)
@@ -80,13 +73,6 @@ for row in test_preds:
     final_predictions.append(int(max(set(row), key=row.count)))
 
 test['predictions'] = final_predictions
-# print(final_predictions)
-# print(test['labels'])
-# test['predictions'] = decode(test['predictions'])
-# test['labels'] = decode(test['labels'])
-#
-# print_information(test, "predictions", "labels")
-
 
 # get confidence score and predictions
 confidence_df = pd.DataFrame(probs)
@@ -139,7 +125,6 @@ new_dataframe['preds'] = new_dataframe['preds'].map({0.0: 'NOT', 1.0: 'OFF'})
 new_dataframe.rename({'text': 'content', 'preds': 'Class'}, axis=1, inplace=True)
 new_dataframe.to_csv('new_train.csv')
 
-test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
 # create new dataframe after filtering the rows
 df_nw = pd.read_csv(arguments.train, sep="\t")
 df_merged = df_nw.append(new_dataframe, ignore_index=True)

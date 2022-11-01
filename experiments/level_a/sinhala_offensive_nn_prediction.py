@@ -1,21 +1,12 @@
-import os
 import argparse
 import pandas as pd
-import sklearn
 from sklearn.model_selection import train_test_split
 from offensive_nn.offensive_nn_model import OffensiveNNModel
 from offensive_nn.util.label_converter import encode, decode
-from offensive_nn.util.print_stat import print_information
-from deepoffense.util.evaluation import macro_f1, weighted_f1
 from offensive_nn.config.sold_config import args
-from deepoffense.common.deepoffense_config import LANGUAGE_FINETUNE, TEMP_DIRECTORY, SUBMISSION_FOLDER, \
-    MODEL_TYPE, MODEL_NAME, language_modeling_args, SEED, RESULT_FILE
 from scipy.special import softmax
 import numpy as np
 
-if not os.path.exists(TEMP_DIRECTORY): os.makedirs(TEMP_DIRECTORY)
-if not os.path.exists(os.path.join(TEMP_DIRECTORY, SUBMISSION_FOLDER)): os.makedirs(
-    os.path.join(TEMP_DIRECTORY, SUBMISSION_FOLDER))
 
 # load arguments
 parser = argparse.ArgumentParser(
@@ -122,7 +113,6 @@ new_dataframe['preds'] = new_dataframe['preds'].map({0.0: 'NOT', 1.0: 'OFF'})
 new_dataframe.rename({'text': 'content', 'preds': 'Class'}, axis=1, inplace=True)
 new_dataframe.to_csv('new_train.csv')
 
-test_set.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
 # create new dataframe after filtering the rows
 df_nw = pd.read_csv(arguments.train, sep="\t")
 df_merged = df_nw.append(new_dataframe, ignore_index=True)

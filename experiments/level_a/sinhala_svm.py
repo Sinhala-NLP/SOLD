@@ -2,26 +2,19 @@ import argparse
 import os
 import numpy as np
 import pandas as pd
-
-from deepoffense.classification import ClassificationModel
-from deepoffense.common.deepoffense_config import LANGUAGE_FINETUNE, TEMP_DIRECTORY, SUBMISSION_FOLDER, \
-    MODEL_TYPE, MODEL_NAME, language_modeling_args, args, SEED, RESULT_FILE
-from deepoffense.language_modeling.language_modeling_model import LanguageModelingModel
-from deepoffense.util.evaluation import macro_f1, weighted_f1
+from svm_config.sold_config import args
+# from deepoffense.common.deepoffense_config import LANGUAGE_FINETUNE, TEMP_DIRECTORY, SUBMISSION_FOLDER, \
+#     MODEL_TYPE, MODEL_NAME, language_modeling_args, args, SEED, RESULT_FILE
 from deepoffense.util.label_converter import decode, encode
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn import svm
 from offensive_nn.util.print_stat import print_information
 
-if not os.path.exists(TEMP_DIRECTORY): os.makedirs(TEMP_DIRECTORY)
-if not os.path.exists(os.path.join(TEMP_DIRECTORY, SUBMISSION_FOLDER)): os.makedirs(
-    os.path.join(TEMP_DIRECTORY, SUBMISSION_FOLDER))
-
 parser = argparse.ArgumentParser(
     description='''evaluates multiple models  ''')
 parser.add_argument('--cuda_device', required=False, help='cuda device', default=0)
-parser.add_argument('--train', required=False, help='train file', default='data/abc.tsv')
-parser.add_argument('--test', required=False, help='test file', default='data/aaa.tsv')
+parser.add_argument('--train', required=False, help='train file', default='data/SOLD_train.tsv')
+parser.add_argument('--test', required=False, help='test file', default='data/SOLD_test.tsv')
 parser.add_argument('--lang', required=False, help='language', default="sin")  # en or sin or hin
 arguments = parser.parse_args()
 
@@ -49,13 +42,13 @@ test_preds = np.zeros((len(test), args["n_fold"]))
 all_text = train_list + test_list
 
 def flatten_words(list1d, get_unique=False):
-    qa = [s.split() for s in list1d]
+    wordlist = [s.split() for s in list1d]
     if get_unique:
-        y = sorted(list(set([w for sent in qa for w in sent])))
-        return y
+        u_list = sorted(list(set([w for sent in wordlist for w in sent])))
+        return u_list
     else:
-        e = [w for sent in qa for w in sent ]
-        return e
+        n_list = [w for sent in wordlist for w in sent ]
+        return n_list
 
 # create vocabulary based on the size of data
 vocab = flatten_words(all_text, get_unique=True)
