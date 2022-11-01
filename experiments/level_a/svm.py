@@ -25,7 +25,6 @@ parser.add_argument('--test', required=False, help='test file', default='data/aa
 parser.add_argument('--lang', required=False, help='language', default="sin")  # en or sin or hin
 arguments = parser.parse_args()
 
-
 # load datafiles related to different languages
 trn_data = pd.read_csv(arguments.train, sep="\t")
 tst_data = pd.read_csv(arguments.test, sep="\t")
@@ -52,9 +51,11 @@ all_text = train_list + test_list
 def flatten_words(list1d, get_unique=False):
     qa = [s.split() for s in list1d]
     if get_unique:
-        return sorted(list(set([w for sent in qa for w in sent])))
+        y = sorted(list(set([w for sent in qa for w in sent])))
+        return y
     else:
-        return [w for sent in qa for w in sent]
+        e = [w for sent in qa for w in sent ]
+        return e
 
 # create vocabulary based on the size of data
 vocab = flatten_words(all_text, get_unique=True)
@@ -65,7 +66,6 @@ test_matrix = tfidf.fit_transform(test['text'])
 print(training_matrix)
 
 for i in range(args["n_fold"]):
-    # model = SVM(model_type_or_path=args["best_model_dir"])
     model = svm.SVC(C=1.0, kernel='linear', degree=3, gamma='auto')
     model.fit(training_matrix, train['labels'])
     predictions = model.predict(test_matrix)

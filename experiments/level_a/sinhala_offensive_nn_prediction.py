@@ -7,8 +7,9 @@ from offensive_nn.offensive_nn_model import OffensiveNNModel
 from offensive_nn.util.label_converter import encode, decode
 from offensive_nn.util.print_stat import print_information
 from deepoffense.util.evaluation import macro_f1, weighted_f1
+from offensive_nn.config.sold_config import args
 from deepoffense.common.deepoffense_config import LANGUAGE_FINETUNE, TEMP_DIRECTORY, SUBMISSION_FOLDER, \
-    MODEL_TYPE, MODEL_NAME, language_modeling_args, args, SEED, RESULT_FILE
+    MODEL_TYPE, MODEL_NAME, language_modeling_args, SEED, RESULT_FILE
 from scipy.special import softmax
 import numpy as np
 
@@ -116,9 +117,9 @@ else:
 df_new = result.iloc[np.where(result['1'].isin(new))]
 df_new2 = result.iloc[np.where(result['2'].isin(new2))]
 new_dataframe = pd.concat([df_new,df_new2]).drop_duplicates()
-new_dataframe = df_new.filter(['id', 'text', 'preds_y'])
-new_dataframe['preds_y'] = new_dataframe['preds_y'].map({0.0: 'NOT', 1.0: 'OFF'})
-new_dataframe.rename({'text': 'content', 'preds_y': 'Class'}, axis=1, inplace=True)
+new_dataframe = df_new.filter(['id', 'text', 'preds'])
+new_dataframe['preds'] = new_dataframe['preds'].map({0.0: 'NOT', 1.0: 'OFF'})
+new_dataframe.rename({'text': 'content', 'preds': 'Class'}, axis=1, inplace=True)
 new_dataframe.to_csv('new_train.csv')
 
 test_set.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')

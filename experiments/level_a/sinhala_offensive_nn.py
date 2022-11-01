@@ -37,8 +37,6 @@ elif arguments.lang == "sin":
     train = train_set.rename(columns={'content': 'text', 'Class': 'labels'})
     sold_test_file = pd.read_csv('data/SOLD_test.tsv', sep="\t")
     test = sold_test_file.rename(columns={'content': 'text', 'Class': 'labels'})
-    # train, test = train_test_split(sold_train_file, test_size=0.1, random_state=777)
-
     train_set = train[['text', 'labels']]
     train_set['labels'] = encode(train_set['labels'])
     test_set = test[['text', 'labels']]
@@ -81,6 +79,7 @@ for row in test_preds:
 
 test_set['predictions'] = final_predictions
 test_set['predictions'] = decode(test_set['predictions'])
-test_set['labels'] = decode(test_set['labels'])
+
+# test_set['labels'] = decode(test_set['labels'])
 
 print_information(test_set, "predictions", "labels")
