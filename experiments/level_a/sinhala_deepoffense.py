@@ -33,7 +33,7 @@ arguments = parser.parse_args()
 trn_data = pd.read_csv(arguments.train, sep="\t")
 tst_data = pd.read_csv(arguments.test, sep="\t")
 
-if arguments.lang == "en":
+if arguments.lang == "en" or arguments.lang == "cmcs":
     trn_data, tst_data = train_test_split(trn_data, test_size=0.1)
 
 elif arguments.lang == "sin":
