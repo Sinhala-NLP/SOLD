@@ -2,7 +2,7 @@ import argparse
 import os
 import numpy as np
 import pandas as pd
-from svm_config.sold_config import args
+from experiments.level_a.svm_config.sold_config import args
 # from deepoffense.common.deepoffense_config import LANGUAGE_FINETUNE, TEMP_DIRECTORY, SUBMISSION_FOLDER, \
 #     MODEL_TYPE, MODEL_NAME, language_modeling_args, args, SEED, RESULT_FILE
 from deepoffense.util.label_converter import decode, encode
