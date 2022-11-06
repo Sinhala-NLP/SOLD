@@ -22,6 +22,7 @@ from sklearn.preprocessing import LabelEncoder
 from keras.preprocessing.sequence import pad_sequences
 import torch
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
 
 def cross_entropy(input1, target, size_average=True):
@@ -49,72 +50,12 @@ def masked_cross_entropy(input1, target, mask):
 
     return cr_ent / mask.shape[0]
 
-
-class SC_weighted_BERT(BertPreTrainedModel):
-    def __init__(self, config, params):
-        super().__init__(config)
-        self.num_labels = config.num_labels
-        self.weights = params['weights']
-        self.train_att = params['train_att']
-        self.lam = params['att_lambda']
-        self.num_sv_heads = params['num_supervised_heads']
-        self.sv_layer = params['supervised_layer_pos']
-        self.bert = BertModel(config)
-        self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.classifier = nn.Linear(config.hidden_size, config.num_labels)
-        # self.softmax=nn.Softmax(config.num_labels)
-        self.init_weights()
-
-    def forward(self,
-                input_ids=None,
-                attention_mask=None,
-                attention_vals=None,
-                token_type_ids=None,
-                position_ids=None,
-                head_mask=None,
-                inputs_embeds=None,
-                labels=None,
-                device=None):
-
-        outputs = self.bert(
-            input_ids,
-            attention_mask=attention_mask,
-            token_type_ids=token_type_ids,
-            position_ids=position_ids,
-            head_mask=head_mask,
-            inputs_embeds=inputs_embeds,
-        )
-
-        pooled_output = outputs[1]
-
-        pooled_output = self.dropout(pooled_output)
-        logits = self.classifier(pooled_output)
-        # logits = self.softmax(logits)
-
-        outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
-
-        if labels is not None:
-            loss_funct = CrossEntropyLoss(weight=torch.tensor(self.weights).to(device))
-            loss_logits = loss_funct(logits.view(-1, self.num_labels), labels.view(-1))
-            loss = loss_logits
-            if (self.train_att):
-
-                loss_att = 0
-                for i in range(self.num_sv_heads):
-                    attention_weights = outputs[1][self.sv_layer][:, i, 0, :]
-                    loss_att += self.lam * masked_cross_entropy(attention_weights, attention_vals, attention_mask)
-                loss = loss + loss_att
-            outputs = (loss,) + outputs
-
-        return outputs  # (loss), logits, (hidden_states), (attentions)
-
-
 #### Few helper functions to convert attention vectors in 0 to 1 scale. While softmax converts all the values such that their sum lies between 0 --> 1. Sigmoid converts each value in the vector in the range 0 -> 1.
 def encodeData(dataframe, vocab, params):
     tuple_new_data = []
     for index, row in tqdm(dataframe.iterrows(), total=len(dataframe)):
         if (params['bert_tokens']):
-            tuple_new_data.append((row['Text'], row['Attention'], row['Label']))
+            tuple_new_data.append((row['Text'], row['Attention'], row['Label'], row['Raw_text']))
         else:
             list_token_id = []
             for word in row['Text']:
@@ -123,7 +64,7 @@ def encodeData(dataframe, vocab, params):
                 except KeyError:
                     index = vocab.stoi['unk']
                 list_token_id.append(index)
-            tuple_new_data.append((list_token_id, row['Attention'], row['Label']))
+            tuple_new_data.append((list_token_id, row['Attention'], row['Label'], row['Raw_text']))
     return tuple_new_data
 
 
@@ -155,7 +96,8 @@ def collect_data(params):
     data_all_labelled.text = data_all_labelled.tokens.str.split()
     data_all_labelled.rationales = data_all_labelled.rationales.apply(lambda x: [ast.literal_eval(x)])
     data_all_labelled['final_label'] = data_all_labelled['label']
-    print(data_all_labelled.iloc[4]['rationales'])
+    # print('test')
+    # print(data_all_labelled.iloc[4]['rationales'])
     train_data = get_test_data(data_all_labelled, params, tokenizer,
                                message='text')  # get_training_data(data_all_labelled, params, tokenizer)
     return train_data
@@ -214,48 +156,6 @@ def createDatasetSplit(params):
         return X_test
 
 
-class Vocab_own():
-    def __init__(self, dataframe, model):
-        self.itos = {}
-        self.stoi = {}
-        self.vocab = {}
-        self.embeddings = []
-        self.dataframe = dataframe
-        self.model = model
-
-    ### load embedding given a word and unk if word not in vocab
-    ### input: word
-    ### output: embedding,word or embedding for unk, unk
-    def load_embeddings(self, word):
-        try:
-            return self.model[word], word
-        except KeyError:
-            return self.model['unk'], 'unk'
-
-    ### create vocab,stoi,itos,embedding_matrix
-    ### input: **self
-    ### output: updates class members
-    def create_vocab(self):
-        count = 1
-        for index, row in tqdm(self.dataframe.iterrows(), total=len(self.dataframe)):
-            for word in row['Text']:
-                vector, word = self.load_embeddings(word)
-                try:
-                    self.vocab[word] += 1
-                except KeyError:
-                    if (word == 'unk'):
-                        print(word)
-                    self.vocab[word] = 1
-                    self.stoi[word] = count
-                    self.itos[count] = word
-                    self.embeddings.append(vector)
-                    count += 1
-        self.vocab['<pad>'] = 1
-        self.stoi['<pad>'] = 0
-        self.itos[0] = '<pad>'
-        self.embeddings.append(np.zeros((300,), dtype=float))
-        self.embeddings = np.array(self.embeddings)
-        # print(self.embeddings.shape)
 
 
 text_processor = TextPreProcessor(
@@ -305,6 +205,8 @@ def custom_tokenize(sent, tokenizer, max_length=512):
             # can't use these features :( .
             # max_length = 128,          # Truncate all sentences.
             # return_tensors = 'pt',     # Return pytorch tensors.
+            # max_length=max_length,
+            # return_tensors='pt'
         )
 
         # Add the encoded sentence to the list.
@@ -314,30 +216,32 @@ def custom_tokenize(sent, tokenizer, max_length=512):
             ' ',  # Sentence to encode.
             add_special_tokens=False,  # Add '[CLS]' and '[SEP]'
             max_length=max_length,
-
+            # return_tensors='pt'
         )
         ### decide what to later
 
     return encoded_sent
 
-
 def ek_extra_preprocess(text, params, tokenizer):
-    remove_words = ['<allcaps>', '</allcaps>', '<hashtag>', '</hashtag>', '<elongated>', '<emphasis>', '<repeated>',
-                    '\'', 's']
-    word_list = text_processor.pre_process_doc(text)
-    if (params['include_special']):
-        pass
-    else:
-        word_list = list(filter(lambda a: a not in remove_words, word_list))
+    # remove_words = ['<allcaps>', '</allcaps>', '<hashtag>', '</hashtag>', '<elongated>', '<emphasis>', '<repeated>',
+    #                 '\'', 's']
+    # word_list = text_processor.pre_process_doc(text)
+    # if (params['include_special']):
+    #     pass
+    # else:
+    #     word_list = list(filter(lambda a: a not in remove_words, word_list))
+    word_list = list(text)
+    # print(type(word_list))
     if (params['bert_tokens']):
-        sent = " ".join(word_list)
-        sent = re.sub(r"[<\*>]", " ", sent)
-        sub_word_list = custom_tokenize(sent, tokenizer)
+        # sent = " ".join(word_list)
+        # sent = re.sub(r"[<\*>]", " ", sent)
+        sub_word_list = custom_tokenize(text, tokenizer)
+        # print('bert tokens')
+        # sub_word_list = tokenizer.tokenize(text)
         return sub_word_list
     else:
         word_list = [token for token in word_list if token not in string.punctuation]
         return word_list
-
 
 ##### We mostly use softmax
 def softmax(x):
@@ -345,23 +249,21 @@ def softmax(x):
     e_x = np.exp(x - np.max(x))
     return e_x / e_x.sum(axis=0)
 
-
 def neg_softmax(x):
     """Compute softmax values for each sets of scores in x. Here we convert the exponentials to 1/exponentials"""
     e_x = np.exp(-(x - np.max(x)))
     return e_x / e_x.sum(axis=0)
-
 
 def sigmoid(z):
     """Compute sigmoid values"""
     g = 1 / (1 + exp(-z))
     return g
 
-
 def returnMask(row, params, tokenizer):
+    # text_tokens = row['text']
     text_tokens = row['text']
 
-    ##### a very rare corner case
+    ##### a very rare corn=r case
     if (len(text_tokens) == 0):
         text_tokens = ['dummy']
         print("length of text ==0")
@@ -370,45 +272,19 @@ def returnMask(row, params, tokenizer):
     mask_all_temp = mask_all
     if len(mask_all[0]) == 0:
         mask_all_temp = []
-    # if row['post_id'] == 1305480579375198208:
-    # print(mask_all)
+
+
     count_temp = 0
-    while (len(mask_all_temp) != 1):
+    # while (len(mask_all_temp) != 1):
+        # mask_all_temp.append([0] * len(text_tokens))
+    while (len(mask_all_temp) != 3):
         mask_all_temp.append([0] * len(text_tokens))
 
     word_mask_all = []
     word_tokens_all = []
 
+    # TODO: Here we consider rationales one by one instead of string parts in HateXplain
     for mask in mask_all_temp:
-
-        if (mask[0] == -1):
-            mask = [0] * len(mask)
-
-        list_pos = []
-        mask_pos = []
-
-        flag = 0
-        for i in range(0, len(mask)):
-            if (i == 0 and mask[i] == 0):
-                list_pos.append(0)
-                mask_pos.append(0)
-
-            if (flag == 0 and mask[i] == 1):
-                mask_pos.append(1)
-                list_pos.append(i)
-                flag = 1
-
-            elif (flag == 1 and mask[i] == 0):
-                flag = 0
-                mask_pos.append(0)
-                list_pos.append(i)
-        if (list_pos[-1] != len(mask)):
-            list_pos.append(len(mask))
-            mask_pos.append(0)
-        string_parts = []
-        for i in range(len(list_pos) - 1):
-            string_parts.append(text_tokens[list_pos[i]:list_pos[i + 1]])
-
         if (params['bert_tokens']):
             word_tokens = [101]
             word_mask = [0]
@@ -416,12 +292,65 @@ def returnMask(row, params, tokenizer):
             word_tokens = []
             word_mask = []
 
-        for i in range(0, len(string_parts)):
-            tokens = ek_extra_preprocess(" ".join(string_parts[i]), params, tokenizer)
-            masks = [mask_pos[i]] * len(tokens)
+        for i in range(0, len(mask)):
+            # TODO: remove join
+            tokens = custom_tokenize(text_tokens[i], tokenizer)
+            masks = [mask[i]] * len(tokens)
+            # masks = custom_tokenize(" ".join(mask[i]), tokenizer)
             word_tokens += tokens
             word_mask += masks
 
+        # if (mask[0] == -1):
+        #     mask = [0] * len(mask)
+        #
+        # list_pos = []
+        # mask_pos = []
+        #
+        # flag = 0
+        # for i in range(0, len(mask)):
+        #     if (i == 0 and mask[i] == 0):
+        #         list_pos.append(0)
+        #         mask_pos.append(0)
+        #
+        #     if (flag == 0 and mask[i] == 1):
+        #         mask_pos.append(1)
+        #         list_pos.append(i)
+        #         flag = 1
+        #
+        #     elif (flag == 1 and mask[i] == 0):
+        #         flag = 0
+        #         mask_pos.append(0)
+        #         list_pos.append(i)
+        # if (list_pos[-1] != len(mask)):
+        #     list_pos.append(len(mask))
+        #     mask_pos.append(0)
+        # string_parts = []
+        # for i in range(len(list_pos) - 1):
+        #     string_parts.append(text_tokens[list_pos[i]:list_pos[i + 1]])
+        #
+        # if (params['bert_tokens']):
+        #     word_tokens = [101]
+        #     word_mask = [0]
+        # else:
+        #     word_tokens = []
+        #     word_mask = []
+        #
+        # for i in range(0, len(string_parts)):
+        #     tokens = custom_tokenize(" ".join(string_parts[i]), tokenizer)
+        #     masks = [mask_pos[i]] * len(tokens)
+        #     word_tokens += tokens
+        #     word_mask += masks
+        #     #
+        #     # if row['post_id'] == 1305480579375198208:
+        #     #     print('custom_tokenize[i]')
+        #     #     print(custom_tokenize(" ".join(string_parts[i]), tokenizer))
+        #     #     print('tok')
+        #     #     print(tokenizer.encode(" ".join(string_parts[i])))
+        #     #     print('tokens')
+        #     #     print(tokens)
+        #     #     print('masks')
+        #     #     print(masks)
+        #
         if (params['bert_tokens']):
             ### always post truncation
             word_tokens = word_tokens[0:(int(params['max_length']) - 2)]
@@ -448,8 +377,10 @@ def aggregate_attention(at_mask, row, params):
 
     #### If the final label is normal or non-toxic then each value is represented by 1/len(sentences)
     if (row['final_label'] in ['NOT']):
+        # print('NOT')
         at_mask_fin = [1 / len(at_mask[0]) for x in at_mask[0]]
     else:
+        # print('OFF')
         at_mask_fin = at_mask
         #### Else it will choose one of the options, where variance is added, mean is calculated, finally the vector is normalised.
         if (params['type_attention'] == 'sigmoid'):
@@ -514,7 +445,6 @@ def distribute(old_distribution, new_distribution, index, left, right, params):
 
     return new_distribution
 
-
 def decay(old_distribution, params):
     window = params['window']
     new_distribution = [0.0] * len(old_distribution)
@@ -530,7 +460,6 @@ def decay(old_distribution, params):
         tempsum = sum(norm_distribution)
         new_distrbution = [each / tempsum for each in norm_distribution]
     return new_distribution
-
 
 def get_test_data(data, params, tokenizer=None, message='text'):
     '''input: data is a dataframe text ids labels column only'''
@@ -571,11 +500,13 @@ def get_training_data_eraser(data, params, tokenizer):
     final_binny_output = []
     print('total_data', len(data))
     for index, row in tqdm(data.iterrows(), total=len(data)):
+        # if index ==0:
+        #     print(row)
         annotation = row['final_label']
 
-        text = row['text']
+        # text = row['Raw_text']
         post_id = row['post_id']
-        annotation_list = [row['label']]  # ,row['label2'],row['label3']]
+        annotation_list = [row['label'], row['label'], row['label']]
         tokens_all = list(row['text'])
         #         attention_masks =  [list(row['explain1']),list(row['explain2']),list(row['explain1'])]
 
@@ -583,11 +514,11 @@ def get_training_data_eraser(data, params, tokenizer):
             tokens_all, attention_masks = returnMask(row, params, tokenizer)
             final_binny_output.append([post_id, annotation, tokens_all, attention_masks, annotation_list])
 
+    if post_id == 1290554471714496514:
+        print(final_binny_output)
     return final_binny_output
 
-
 # TODO: remove else of params['bert_tokens'] checks
-
 def combine_features(tuple_data, params, is_train=False):
     input_ids = [ele[0] for ele in tuple_data]
     att_vals = [ele[1] for ele in tuple_data]
@@ -606,7 +537,6 @@ def combine_features(tuple_data, params, is_train=False):
     dataloader = return_dataloader(input_ids, labels, att_vals, att_masks, params, is_train)
     return dataloader
 
-
 def return_dataloader(input_ids, labels, att_vals, att_masks, params, is_train=False):
     inputs = torch.tensor(input_ids)
     labels = torch.tensor(labels, dtype=torch.long)
@@ -617,7 +547,6 @@ def return_dataloader(input_ids, labels, att_vals, att_masks, params, is_train=F
 
     dataloader = DataLoader(data, sampler=sampler, batch_size=params['batch_size'])
     return dataloader
-
 
 def custom_att_masks(input_ids):
     attention_masks = []
@@ -632,7 +561,6 @@ def custom_att_masks(input_ids):
         # Store the attention mask for this sentence.
         attention_masks.append(att_mask)
     return attention_masks
-
 
 def convert_data(test_data, params, list_dict, rational_present=True, topk=2):
     """this converts the data to be with or without the rationals based on the previous predictions"""
@@ -675,7 +603,6 @@ def convert_data(test_data, params, list_dict, rational_present=True, topk=2):
     df = pd.DataFrame(test_data_modified, columns=test_data.columns)
     return df
 
-
 def softmax(x):
     """Compute softmax values for each sets of scores in x."""
     e_x = np.exp(x - np.max(x))
@@ -685,7 +612,6 @@ def softmax(x):
         return [0.0, 1.0, 0.0]
     else:
         return temp
-
 
 def format_time(elapsed):
     '''
@@ -697,7 +623,6 @@ def format_time(elapsed):
     # Format as hh:mm:ss
     return str(datetime.timedelta(seconds=elapsed_rounded))
 
-
 # https://stackoverflow.com/questions/2154249/identify-groups-of-continuous-numbers-in-a-list
 def find_ranges(iterable):
     """Yield range of consecutive numbers."""
@@ -707,7 +632,6 @@ def find_ranges(iterable):
             yield group[0]
         else:
             yield group[0], group[-1]
-
 
 # Convert dataset into ERASER format: https://github.com/jayded/eraserbenchmark/blob/master/rationale_benchmark/utils.py
 def get_evidence(post_id, anno_text, explanations):
@@ -752,8 +676,11 @@ def convert_to_eraser_format(dataset, method, save_split, save_path, id_division
         anno_text_list = eachrow[2]
         majority_label = eachrow[1]
 
-        if majority_label == 'NOT':
-            continue
+        if post_id == 1290554471714496514:
+            print(eachrow)
+        #
+        # if majority_label == 'NOT':
+        #     continue
 
         all_labels = eachrow[4]
         explanations = []
@@ -764,6 +691,7 @@ def convert_to_eraser_format(dataset, method, save_split, save_path, id_division
         if method == 'union':
             final_explanation = [any(each) for each in zip(*explanations)]
             final_explanation = [int(each) for each in final_explanation]
+        # final_explanation =explanations[0]# [int(each) for each in explanations[0]]
 
         temp['annotation_id'] = post_id
         temp['classification'] = post_class
@@ -790,3 +718,128 @@ def convert_to_eraser_format(dataset, method, save_split, save_path, id_division
         test_fp.close()
 
     return final_output
+
+class SC_weighted_BERT(BertPreTrainedModel):
+    def __init__(self, config, params):
+        super().__init__(config)
+        self.num_labels = config.num_labels
+        self.weights = params['weights']
+        self.train_att = params['train_att']
+        self.lam = params['att_lambda']
+        self.num_sv_heads = params['num_supervised_heads']
+        self.sv_layer = params['supervised_layer_pos']
+        self.bert = AutoModelForSequenceClassification.from_pretrained(params['model_name'], config=config)#, output_hidden_states=True)#BertModel(config)
+        self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        self.classifier = nn.Linear(config.hidden_size, config.num_labels)
+        self.softmax=nn.Softmax(config.num_labels)
+        self.init_weights()
+
+    def forward(self,
+                input_ids=None,
+                attention_mask=None,
+                attention_vals=None,
+                token_type_ids=None,
+                position_ids=None,
+                head_mask=None,
+                inputs_embeds=None,
+                labels=None,
+                device=None):
+
+        # outputs = self.bert(input_ids,
+        #                        attention_mask=attention_mask,
+        #                        token_type_ids=token_type_ids,
+        #                        position_ids=position_ids,
+        #                        head_mask=head_mask)
+        # logits = outputs[0]
+        # logits = self.classifier(sequence_output)
+
+        # outputs = self.bert(
+        #     input_ids,
+        #     attention_mask=attention_mask,
+        #     token_type_ids=token_type_ids,
+        #     position_ids=position_ids,
+        #     head_mask=head_mask,
+        #     inputs_embeds=inputs_embeds,
+        # )
+
+        # outputs = model(b_input_ids,
+        #                 output_attentions=True,
+        #                 output_hidden_states=False,
+        #                 labels=None)
+        outputs = self.bert(
+            input_ids,
+            output_attentions=True,
+            output_hidden_states=False,
+            # labels=None
+        )
+
+        # pooled_output = outputs[0]
+        # #
+        # pooled_output = self.dropout(pooled_output)
+
+        logits = outputs[0] #self.classifier(pooled_output)
+        # logits = self.softmax(logits)
+        # logits = outputs[0]
+
+        outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
+        # print('test2')
+
+        if labels is not None:
+            # print('test3')
+            loss_funct = CrossEntropyLoss(weight=torch.tensor(self.weights).to(device))
+            loss_logits = loss_funct(logits.view(-1, self.num_labels), labels.view(-1))
+            loss = loss_logits
+            if (self.train_att):
+
+                loss_att = 0
+                for i in range(self.num_sv_heads):
+                    attention_weights = outputs[1][self.sv_layer][:, i, 0, :]
+                    loss_att += self.lam * masked_cross_entropy(attention_weights, attention_vals, attention_mask)
+                loss = loss + loss_att
+            outputs = (loss,) + outputs
+
+        return outputs  # (loss), logits, (hidden_states), (attentions)
+
+
+class Vocab_own():
+    def __init__(self, dataframe, model):
+        self.itos = {}
+        self.stoi = {}
+        self.vocab = {}
+        self.embeddings = []
+        self.dataframe = dataframe
+        self.model = model
+
+    ### load embedding given a word and unk if word not in vocab
+    ### input: word
+    ### output: embedding,word or embedding for unk, unk
+    def load_embeddings(self, word):
+        try:
+            return self.model[word], word
+        except KeyError:
+            return self.model['unk'], 'unk'
+
+    ### create vocab,stoi,itos,embedding_matrix
+    ### input: **self
+    ### output: updates class members
+    def create_vocab(self):
+        count = 1
+        for index, row in tqdm(self.dataframe.iterrows(), total=len(self.dataframe)):
+            for word in row['Text']:
+                vector, word = self.load_embeddings(word)
+                try:
+                    self.vocab[word] += 1
+                except KeyError:
+                    if (word == 'unk'):
+                        print(word)
+                    self.vocab[word] = 1
+                    self.stoi[word] = count
+                    self.itos[count] = word
+                    self.embeddings.append(vector)
+                    count += 1
+        self.vocab['<pad>'] = 1
+        self.stoi['<pad>'] = 0
+        self.itos[0] = '<pad>'
+        self.embeddings.append(np.zeros((300,), dtype=float))
+        self.embeddings = np.array(self.embeddings)
+        # print(self.embeddings.shape)

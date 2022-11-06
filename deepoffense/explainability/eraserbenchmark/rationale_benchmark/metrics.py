@@ -294,10 +294,11 @@ def score_classifications(instances: List[dict], annotations: List[Annotation], 
         truth.append(label_to_int[ann.classification])
         inst = key_to_instances[ann.annotation_id]
 
-        if inst['classification'] == 'toxic':
-          class_label = 'OFF'
-        else:
-          class_label = 'NOT'
+        # if inst['classification'] == 'toxic':
+        #   class_label = 'OFF'
+        # else:
+        #   class_label = 'NOT'
+        class_label = inst['classification']
         
         predicted.append(label_to_int[class_label])
     classification_scores = classification_report(truth, predicted, output_dict=True, target_names=labels, digits=3)
@@ -400,9 +401,22 @@ def verify_instance(instance: dict, docs: Dict[str, list], thresholds: Set[float
         # length check for soft rationale
         # note that either flattened_documents or sentence-broken documents must be passed in depending on result
         soft_rationale_predictions = rat.get('soft_rationale_predictions', [])
+
         if len(soft_rationale_predictions) > 0 and len(soft_rationale_predictions) != doc_length:
             logging.info(f'Error! For instance annotation={instance["annotation_id"]}, docid={docid} expected classifications for {doc_length} tokens but have them for {len(soft_rationale_predictions)} tokens instead!')
             error = True
+            #
+            # if len(soft_rationale_predictions) > doc_length:
+            #     greater=greater+1
+            # if len(soft_rationale_predictions) < doc_length:
+            #     smaller=smaller+1
+            # print('soft_rationale_predictions')
+            # print(soft_rationale_predictions)
+            # print('docs[str(docid)]')
+            # print(docs[str(docid)])
+            # print(
+            #     f'Error! For instance annotation={instance["annotation_id"]}, docid={docid} expected classifications for {doc_length} tokens but have them for {len(soft_rationale_predictions)} tokens instead!')
+            # debug
 
     # count that one appears per-document
     docids = Counter(docids)
@@ -635,12 +649,16 @@ def main():
             iou_scores = partial_match_score(truth, pred, args.iou_thresholds)
             scores['iou_scores'] = iou_scores
         # NER style scoring
+        # print(len(truth))
+        # print(len(pred))
         rationale_level_prf = score_hard_rationale_predictions(truth, pred)
+        print(rationale_level_prf)
         scores['rationale_prf'] = rationale_level_prf
         token_level_truth = list(chain.from_iterable(rat.to_token_level() for rat in truth))
         token_level_pred = list(chain.from_iterable(rat.to_token_level() for rat in pred))
         token_level_prf = score_hard_rationale_predictions(token_level_truth, token_level_pred)
         scores['token_prf'] = token_level_prf
+        print(token_level_prf)
     else:
         logging.info("No hard predictions detected, skipping rationale scoring")
 

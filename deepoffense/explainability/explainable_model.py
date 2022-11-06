@@ -5,6 +5,10 @@ import warnings
 
 from sklearn.preprocessing import LabelEncoder
 
+from deepoffense.classification.classification_utils import LazyClassificationDataset, InputExample, \
+    convert_examples_to_features, sweep_config_to_sweep_values
+
+
 import numpy as np
 import pandas as pd
 import torch
@@ -94,7 +98,10 @@ class ExplainableModel(ClassificationModel):
 
         MODEL_CLASSES = {
             "albert": (AlbertConfig, AlbertForSequenceClassification, AlbertTokenizer),
-            "auto": (AutoConfig, SC_weighted_BERT, AutoTokenizer),
+            "auto": (AutoConfig,
+                     AutoModelForSequenceClassification,
+                     # SC_weighted_BERT,
+                     AutoTokenizer),
             "bert": (BertConfig, BertForSequenceClassification, BertTokenizerFast),
             "bertweet": (
                 RobertaConfig,
@@ -236,7 +243,8 @@ class ExplainableModel(ClassificationModel):
                     )
                 else:
                     print('load model')
-                    self.model = model_class.from_pretrained(model_name, config=self.config, params=params, **kwargs)
+                    # self.model = model_class.from_pretrained(model_name, config=self.config, params=params, **kwargs)
+                    self.model = model_class.from_pretrained(model_name, config=self.config, **kwargs)
             else:
                 quantized_weights = torch.load(os.path.join(model_name, "pytorch_model.bin"))
                 if self.weight:
@@ -404,11 +412,17 @@ class ExplainableModel(ClassificationModel):
 
         model = self.model
         args = self.args
-        print(args)
+        # print(args)
         eval_output_dir = output_dir
 
         test = createDatasetSplit(params)
         vocab_own = None
+
+        print(params['weights'])
+        print(params['train_att'])
+        print(params['att_lambda'])
+        print(params['num_supervised_heads'])
+        print(params['supervised_layer_pos'])
 
         results = {}
 
@@ -422,11 +436,26 @@ class ExplainableModel(ClassificationModel):
             test_data = get_test_data(temp_read, params, self.tokenizer, message='text')
             test_extra = encodeData(test_data, vocab_own, params)
             eval_dataloader = combine_features(test_extra, params, is_train=False)
+            # eval_examples = [
+            #     InputExample(i, text, None, label)
+            #     for i, (text, label) in enumerate(zip(test_data["Raw_text"].astype(str), test_data["Label"]))
+            # ]
         elif (use_ext_df):
             test_extra = encodeData(test_data, vocab_own, params)
             eval_dataloader = combine_features(test_extra, params, is_train=False)
+            eval_examples = [
+                InputExample(i, text, None, label)
+                for i, (text, label) in enumerate(zip(test_data["Raw_text"].astype(str), test_data["Label"]))
+            ]
         else:
-            eval_dataloader = combine_features(test, params, is_train=False)
+            # eval_dataloader = combine_features(test, params, is_train=False)
+            eval_examples = [
+                InputExample(i, text, None, label)
+                for i, (text, label) in enumerate(zip(test["text"].astype(str), test["labels"]))
+            ]
+
+        # eval_dataloader = self.load_and_cache_examples(eval_examples, evaluate=True, verbose=verbose,
+        #                                                silent=silent)
 
         if args.n_gpu > 1:
             model = torch.nn.DataParallel(model)
@@ -465,24 +494,35 @@ class ExplainableModel(ClassificationModel):
                 b_input_mask = batch[2].to(self.device)
                 b_labels = batch[3].to(self.device)
 
+                # outputs = model(b_input_ids,
+                #                 attention_vals=b_att_val,
+                #                 attention_mask=b_input_mask,
+                #                 labels=b_labels, device=self.device)
+
                 outputs = model(b_input_ids,
-                                attention_vals=b_att_val,
-                                attention_mask=b_input_mask,
-                                labels=None, device=self.device)
+                                output_attentions=True,
+                                output_hidden_states=False,
+                                labels=None)
 
                 logits = outputs[0]  # logits
 
             # Move logits and labels to CPU
             logits = logits.detach().cpu().numpy()
             label_ids = b_labels.detach().cpu().numpy()  # out_label_ids
+            # if i==0:
+            #     print('test')
+            #     print(label_ids)
+            #     print(np.argmax(logits, axis=1).flatten())
 
             attention_vectors = np.mean(outputs[1][11][:, :, 0, :].detach().cpu().numpy(), axis=1)
+            # attention_vectors = outputs[1].detach().cpu().numpy()
 
             pred_labels += list(np.argmax(logits, axis=1).flatten())
             true_labels += list(label_ids.flatten())
             logits_all += list(logits)
             attention_all += list(attention_vectors)
             input_mask_all += list(batch[2].detach().cpu().numpy())
+            # input_mask_all += list(batch[1].detach().cpu().numpy())
 
         logits_all_final = []
         for logits in logits_all:
@@ -511,17 +551,32 @@ class ExplainableModel(ClassificationModel):
 
         list_dict = []
 
+        i = 0
         for post_id, attention, logits, pred, ground_truth in zip(post_id_all, attention_vector_final, logits_all_final,
                                                                   pred_labels, true_labels):
             temp = {}
             encoder = LabelEncoder()
             encoder.classes_ = np.load(params['class_names'], allow_pickle=True)
-            # print(encoder.classes_)
             pred_label = encoder.inverse_transform([pred])[0]
-
+            ground_label = encoder.inverse_transform([ground_truth])[0]
             temp["annotation_id"] = post_id
             temp["classification"] = pred_label
             temp["classification_scores"] = {"NOT": logits[0], "OFF": logits[1]}
+
+            # i = 0
+            # if pred_label != ground_truth:
+            #     p_1 = encoder.inverse_transform([pred])
+            #     i=i+1
+            # if i==0:
+            #     p_1 = encoder.inverse_transform([pred])
+            #     # max_val = max(logits)
+            #     idx_max = logits.argmax()
+            #     print('p_1')
+            #     print(p_1)
+            #     print('idx_max')
+            #     print(idx_max)
+            #     print('ground_truth')
+            #     print(ground_truth)
 
             topk_indicies = sorted(range(len(attention)), key=lambda i: attention[i])[-topk:]
 
@@ -532,10 +587,34 @@ class ExplainableModel(ClassificationModel):
             temp["rationales"] = [{"docid": post_id,
                                    "hard_rationale_predictions": temp_hard_rationales,
                                    "soft_rationale_predictions": attention,
+                                   # "soft_sentence_predictions":[1.0],
                                    "truth": ground_truth}]
             list_dict.append(temp)
 
         return list_dict, test_data
+        #     temp = {}
+        #     encoder = LabelEncoder()
+        #     encoder.classes_ = np.load(params['class_names'], allow_pickle=True)
+        #     # print(encoder.classes_)
+        #     pred_label = encoder.inverse_transform([pred])[0]
+        #
+        #     temp["annotation_id"] = post_id
+        #     temp["classification"] = pred_label
+        #     temp["classification_scores"] = {"NOT": logits[0], "OFF": logits[1]}
+        #
+        #     topk_indicies = sorted(range(len(attention)), key=lambda i: attention[i])[-topk:]
+        #
+        #     temp_hard_rationales = []
+        #     for ind in topk_indicies:
+        #         temp_hard_rationales.append({'end_token': ind + 1, 'start_token': ind})
+        #
+        #     temp["rationales"] = [{"docid": post_id,
+        #                            "hard_rationale_predictions": temp_hard_rationales,
+        #                            "soft_rationale_predictions": attention,
+        #                            "truth": ground_truth}]
+        #     list_dict.append(temp)
+        #
+        # return list_dict, test_data
 
     def load_and_cache_examples(
             self,
@@ -643,7 +722,7 @@ class ExplainableModel(ClassificationModel):
             features = [feature for feature_set in features for feature in feature_set]
 
         all_input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)
-        all_att_vals = torch.tensor([f.att_vals for f in features], dtype=torch.long)
+        # all_att_vals = torch.tensor([f.att_vals for f in features], dtype=torch.long)
         all_input_mask = torch.tensor([f.input_mask for f in features], dtype=torch.long)
         all_segment_ids = torch.tensor([f.segment_ids for f in features], dtype=torch.long)
 
