@@ -16,7 +16,7 @@ args = {
 
     'manual_seed': 777,
 
-    'n_fold': 3,
+    'n_fold': 1,
 
     'num_classes': 2,
     'num_train_epochs': 50,
