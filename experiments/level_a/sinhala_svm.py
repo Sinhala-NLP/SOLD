@@ -21,8 +21,8 @@ tst_data = pd.read_csv(arguments.test, sep="\t")
 
 # trn_data, tst_data = train_test_split(trn_data, test_size=0.1)
 if arguments.lang == "sin":
-    trn_data = trn_data.rename(columns={'content': 'text', 'Class': 'labels'})
-    tst_data = tst_data.rename(columns={'content': 'text', 'Class': 'labels'})
+    trn_data = trn_data.rename(columns={'label': 'labels'})
+    tst_data = tst_data.rename(columns={'label': 'labels'})
 
 
 train = trn_data[['text', 'labels']]

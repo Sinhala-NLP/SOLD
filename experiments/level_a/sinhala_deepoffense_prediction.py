@@ -38,7 +38,7 @@ if arguments.lang == "en":
     trn_data, tst_data = train_test_split(trn_data, test_size=0.1)
 
 elif arguments.lang == "sin":
-    trn_data = trn_data.rename(columns={'content': 'text', 'Class': 'labels'})
+    trn_data = trn_data.rename(columns={'label': 'labels'})
 
 elif arguments.lang == "hin":
     trn_data = trn_data.rename(columns={'task_1': 'labels'})
@@ -145,7 +145,7 @@ df_new2 = result.iloc[np.where(result['2'].isin(new2))]
 new_dataframe = pd.concat([df_new,df_new2]).drop_duplicates()
 new_dataframe = df_new.filter(['id', 'text', 'preds_y'])
 new_dataframe['preds_y'] = new_dataframe['preds_y'].map({0.0: 'NOT', 1.0: 'OFF'})
-new_dataframe.rename({'text': 'content', 'preds_y': 'Class'}, axis=1, inplace=True)
+new_dataframe.rename({'text': 'text', 'preds_y': 'label'}, axis=1, inplace=True)
 new_dataframe.to_csv('new_train.csv')
 
 test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')

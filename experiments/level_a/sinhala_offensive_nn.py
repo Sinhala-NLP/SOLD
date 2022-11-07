@@ -34,19 +34,17 @@ if arguments.lang == "en":
     train_set['labels'] = encode(train_set["labels"])
 
 elif arguments.lang == "sin":
-    train = train_set.rename(columns={'content': 'text', 'Class': 'labels'})
-    sold_test_file = pd.read_csv('data/SOLD_test.tsv', sep="\t")
-    test = sold_test_file.rename(columns={'content': 'text', 'Class': 'labels'})
+    train = train_set.rename(columns={'label': 'labels'})
+    test = test_set.rename(columns={'label': 'labels'})
     train_set = train[['text', 'labels']]
     train_set['labels'] = encode(train_set['labels'])
     test_set = test[['text', 'labels']]
-    # test_set['labels'] = encode(test_set['labels'])
+    test_set['labels'] = encode(test_set['labels'])
 
 
 elif arguments.lang == "hin":
     hindi_train_file = pd.read_csv('data/other/hindi_dataset.tsv', sep="\t")
     train = hindi_train_file.rename(columns={'task_1': 'labels'})
-
     hindi_test_file = pd.read_csv('data/other/hasoc2019_hi_test_gold_2919.tsv', sep="\t")
     test = hindi_test_file.rename(columns={'subtask_a': 'labels', 'tweet': 'text'})
 
@@ -79,7 +77,6 @@ for row in test_preds:
 
 test_set['predictions'] = final_predictions
 test_set['predictions'] = decode(test_set['predictions'])
-
-# test_set['labels'] = decode(test_set['labels'])
+test_set['labels'] = decode(test_set['labels'])
 
 print_information(test_set, "predictions", "labels")

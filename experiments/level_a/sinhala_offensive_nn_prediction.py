@@ -26,8 +26,8 @@ tst_data = pd.read_csv(arguments.test, sep="\t")
 if arguments.lang == "en":
     trn_data, tst_data = train_test_split(trn_data, test_size=0.1)
 elif arguments.lang == "sin":
-    trn_data = trn_data.rename(columns={'content': 'text', 'Class': 'labels'})
-    tst_data = tst_data.rename(columns={'content': 'text', 'Class': 'labels'})
+    trn_data = trn_data.rename(columns={'label': 'labels'})
+    tst_data = tst_data.rename(columns={'label': 'labels'})
 elif arguments.lang == "hin":
     trn_data = trn_data.rename(columns={'task_1': 'labels'})
     tst_data = tst_data.rename(columns={'subtask_a': 'labels', 'tweet': 'text'})
@@ -110,7 +110,7 @@ df_new2 = result.iloc[np.where(result['2'].isin(new2))]
 new_dataframe = pd.concat([df_new,df_new2]).drop_duplicates()
 new_dataframe = df_new.filter(['id', 'text', 'preds'])
 new_dataframe['preds'] = new_dataframe['preds'].map({0.0: 'NOT', 1.0: 'OFF'})
-new_dataframe.rename({'text': 'content', 'preds': 'Class'}, axis=1, inplace=True)
+new_dataframe.rename({'text': 'text', 'preds': 'labels'}, axis=1, inplace=True)
 new_dataframe.to_csv('new_train.csv')
 
 # create new dataframe after filtering the rows
