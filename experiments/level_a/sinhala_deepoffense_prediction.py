@@ -103,8 +103,8 @@ for row in test_preds:
 
 # get confidence score and predictions
 confidence_df = pd.DataFrame(probs)
-test['preds'] = predictions
-predictions_df = pd.merge(test, test[['preds']], how='left', left_index=True, right_index=True)
+test['label'] = predictions
+predictions_df = pd.merge(test, test[['label']], how='left', left_index=True, right_index=True)
 predictions_df.to_csv('prediction.csv')
 confidence_df.to_csv('confidence_result1.csv', index=False)
 test['predictions'] = predictions
@@ -127,7 +127,7 @@ m2 = np.mean(df['2'])
 l1 = float(arguments.sdvalue)
 
 # get all the offensive and not offensive posts from the dataset
-df_group_posts = result.groupby('preds_y')
+df_group_posts = result.groupby('label')
 offensive_posts = df_group_posts.get_group(1.0)
 for ix in offensive_posts.index:
     off_prob = offensive_posts.loc[ix]['1']
@@ -143,14 +143,15 @@ for ix in offensive_not_posts.index:
 df_new = result.iloc[np.where(result['1'].isin(new))]
 df_new2 = result.iloc[np.where(result['2'].isin(new2))]
 new_dataframe = pd.concat([df_new,df_new2]).drop_duplicates()
-new_dataframe = df_new.filter(['id', 'text', 'preds_y'])
-new_dataframe['preds_y'] = new_dataframe['preds_y'].map({0.0: 'NOT', 1.0: 'OFF'})
-new_dataframe.rename({'text': 'text', 'preds_y': 'label'}, axis=1, inplace=True)
+new_dataframe = df_new.filter(['id', 'text', 'label'])
+new_dataframe['label'] = new_dataframe['label'].map({0.0: 'NOT', 1.0: 'OFF'})
+# new_dataframe.rename({'text': 'text', 'preds_y': 'label'}, axis=1, inplace=True)
 new_dataframe.to_csv('new_train.csv')
 
 test.to_csv(os.path.join(TEMP_DIRECTORY, RESULT_FILE), header=True, sep='\t', index=False, encoding='utf-8')
 # create new dataframe after filtering the rows
 df_nw = pd.read_csv(arguments.train, sep="\t")
+df_nw = df_nw [["text","label"]]
 df_merged = df_nw.append(new_dataframe, ignore_index=True)
 df_merged.to_csv('data/new_sold.tsv', sep="\t")
 

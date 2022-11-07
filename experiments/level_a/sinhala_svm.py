@@ -70,7 +70,7 @@ for row in test_preds:
 test['predictions'] = final_predictions
 print(final_predictions)
 print(test['labels'])
-test['predictions'] = decode(test['predictions'])
-test['labels'] = decode(test['labels'])
+# test['predictions'] = decode(test['predictions'])
+# test['labels'] = decode(test['labels'])
 
 print_information(test, "predictions", "labels")
