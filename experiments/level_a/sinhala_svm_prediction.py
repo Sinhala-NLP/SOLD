@@ -119,7 +119,7 @@ df_new2 = result.iloc[np.where(result['2'].isin(new2))]
 new_dataframe = pd.concat([df_new,df_new2]).drop_duplicates()
 new_dataframe = df_new.filter(['id', 'text', 'preds'])
 new_dataframe['preds'] = new_dataframe['preds'].map({0.0: 'NOT', 1.0: 'OFF'})
-new_dataframe.rename({'text': 'content', 'preds': 'Class'}, axis=1, inplace=True)
+new_dataframe.rename({'text': 'text', 'preds': 'labels'}, axis=1, inplace=True)
 new_dataframe.to_csv('new_train.csv')
 
 # create new dataframe after filtering the rows
