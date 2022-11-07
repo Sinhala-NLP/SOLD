@@ -23,6 +23,17 @@ from keras.preprocessing.sequence import pad_sequences
 import torch
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
+import torch
+import torch.nn as nn
+from torch.nn import CrossEntropyLoss, MSELoss
+from transformers.models.roberta.modeling_roberta import (
+    ROBERTA_PRETRAINED_MODEL_ARCHIVE_LIST,
+    RobertaClassificationHead,
+    RobertaConfig,
+    RobertaModel,
+)
+
+from transformers import BertPreTrainedModel
 
 
 def cross_entropy(input1, target, size_average=True):
@@ -523,6 +534,7 @@ def combine_features(tuple_data, params, is_train=False):
     input_ids = [ele[0] for ele in tuple_data]
     att_vals = [ele[1] for ele in tuple_data]
     labels = [ele[2] for ele in tuple_data]
+    raw_text = [ele[3] for ele in tuple_data]
 
     encoder = LabelEncoder()
 
@@ -720,85 +732,172 @@ def convert_to_eraser_format(dataset, method, save_split, save_path, id_division
     return final_output
 
 class SC_weighted_BERT(BertPreTrainedModel):
-    def __init__(self, config, params):
-        super().__init__(config)
+    r"""
+        **labels**: (`optional`) ``torch.LongTensor`` of shape ``(batch_size,)``:
+            Labels for computing the sequence classification/regression loss.
+            Indices should be in ``[0, ..., config.num_labels]``.
+            If ``config.num_labels == 1`` a regression loss is computed (Mean-Square loss),
+            If ``config.num_labels > 1`` a classification loss is computed (Cross-Entropy).
+    Outputs: `Tuple` comprising various elements depending on the configuration (config) and inputs:
+        **loss**: (`optional`, returned when ``labels`` is provided) ``torch.FloatTensor`` of shape ``(1,)``:
+            Classification (or regression if config.num_labels==1) loss.
+        **logits**: ``torch.FloatTensor`` of shape ``(batch_size, config.num_labels)``
+            Classification (or regression if config.num_labels==1) scores (before SoftMax).
+        **hidden_states**: (`optional`, returned when ``config.output_hidden_states=True``)
+            list of ``torch.FloatTensor`` (one for the output of each layer + the output of the embeddings)
+            of shape ``(batch_size, sequence_length, hidden_size)``:
+            Hidden-states of the model at the output of each layer plus the initial embedding outputs.
+        **attentions**: (`optional`, returned when ``config.output_attentions=True``)
+            list of ``torch.FloatTensor`` (one for each layer) of shape ``(batch_size, num_heads, sequence_length, sequence_length)``:
+            Attentions weights after the attention softmax, used to compute the weighted average in the self-attention heads.
+    Examples::
+        tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
+        model = RobertaForSequenceClassification.from_pretrained('roberta-base')
+        input_ids = torch.tensor(tokenizer.encode("Hello, my dog is cute")).unsqueeze(0)  # Batch size 1
+        labels = torch.tensor([1]).unsqueeze(0)  # Batch size 1
+        outputs = model(input_ids, labels=labels)
+        loss, logits = outputs[:2]
+    """  # noqa: ignore flake8"
+    config_class = RobertaConfig
+    pretrained_model_archive_map = ROBERTA_PRETRAINED_MODEL_ARCHIVE_LIST
+    base_model_prefix = "roberta"
+
+    def __init__(self, config, weight=None):
+        super(SC_weighted_BERT, self).__init__(config)
         self.num_labels = config.num_labels
-        self.weights = params['weights']
-        self.train_att = params['train_att']
-        self.lam = params['att_lambda']
-        self.num_sv_heads = params['num_supervised_heads']
-        self.sv_layer = params['supervised_layer_pos']
-        self.bert = AutoModelForSequenceClassification.from_pretrained(params['model_name'], config=config)#, output_hidden_states=True)#BertModel(config)
-        self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.classifier = nn.Linear(config.hidden_size, config.num_labels)
-        self.softmax=nn.Softmax(config.num_labels)
-        self.init_weights()
 
-    def forward(self,
-                input_ids=None,
-                attention_mask=None,
-                attention_vals=None,
-                token_type_ids=None,
-                position_ids=None,
-                head_mask=None,
-                inputs_embeds=None,
-                labels=None,
-                device=None):
+        self.roberta = RobertaModel(config)
+        self.classifier = RobertaClassificationHead(config)
+        self.weight = weight
+        # TODO: Pass params
+        self.num_sv_heads = 1
+        self.sv_layer = 11
+        self.lam = 100.0
 
-        # outputs = self.bert(input_ids,
-        #                        attention_mask=attention_mask,
-        #                        token_type_ids=token_type_ids,
-        #                        position_ids=position_ids,
-        #                        head_mask=head_mask)
-        # logits = outputs[0]
-        # logits = self.classifier(sequence_output)
-
-        # outputs = self.bert(
-        #     input_ids,
-        #     attention_mask=attention_mask,
-        #     token_type_ids=token_type_ids,
-        #     position_ids=position_ids,
-        #     head_mask=head_mask,
-        #     inputs_embeds=inputs_embeds,
-        # )
-
-        # outputs = model(b_input_ids,
-        #                 output_attentions=True,
-        #                 output_hidden_states=False,
-        #                 labels=None)
-        outputs = self.bert(
+    def forward(
+        self,
+        input_ids=None,
+        attention_mask=None,
+        token_type_ids=None,
+        position_ids=None,
+        head_mask=None,
+        inputs_embeds=None,
+        labels=None,
+        attention_vals = None
+    ):
+        outputs = self.roberta(
             input_ids,
-            output_attentions=True,
-            output_hidden_states=False,
-            # labels=None
+            attention_mask=attention_mask,
+            token_type_ids=token_type_ids,
+            position_ids=position_ids,
+            head_mask=head_mask,
+            # attention_vals = attention_vals
         )
+        sequence_output = outputs[0]
+        logits = self.classifier(sequence_output)
 
-        # pooled_output = outputs[0]
-        # #
-        # pooled_output = self.dropout(pooled_output)
-
-        logits = outputs[0] #self.classifier(pooled_output)
-        # logits = self.softmax(logits)
-        # logits = outputs[0]
-
-        outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
-        # print('test2')
-
+        outputs = (logits,) + outputs[2:]
         if labels is not None:
-            # print('test3')
-            loss_funct = CrossEntropyLoss(weight=torch.tensor(self.weights).to(device))
-            loss_logits = loss_funct(logits.view(-1, self.num_labels), labels.view(-1))
-            loss = loss_logits
-            if (self.train_att):
-
-                loss_att = 0
+            if self.num_labels == 1:
+                #  We are doing regression
+                loss_fct = MSELoss()
+                loss = loss_fct(logits.view(-1), labels.view(-1))
+            else:
+                if self.weight is not None:
+                    weight = self.weight.to(labels.device)
+                else:
+                    weight = None
+                loss_fct = CrossEntropyLoss(weight=weight)
+                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+                loss_att=0
                 for i in range(self.num_sv_heads):
                     attention_weights = outputs[1][self.sv_layer][:, i, 0, :]
                     loss_att += self.lam * masked_cross_entropy(attention_weights, attention_vals, attention_mask)
+
                 loss = loss + loss_att
             outputs = (loss,) + outputs
 
         return outputs  # (loss), logits, (hidden_states), (attentions)
+# class SC_weighted_BERT(BertPreTrainedModel):
+#     def __init__(self, config, params):
+#         super().__init__(config)
+#         self.num_labels = config.num_labels
+#         self.weights = params['weights']
+#         self.train_att = params['train_att']
+#         self.lam = params['att_lambda']
+#         self.num_sv_heads = params['num_supervised_heads']
+#         self.sv_layer = params['supervised_layer_pos']
+#         self.bert = AutoModelForSequenceClassification.from_pretrained(params['model_name'], config=config)#, output_hidden_states=True)#BertModel(config)
+#         self.dropout = nn.Dropout(config.hidden_dropout_prob)
+#         self.classifier = nn.Linear(config.hidden_size, config.num_labels)
+#         self.softmax=nn.Softmax(config.num_labels)
+#         self.init_weights()
+#
+#     def forward(self,
+#                 input_ids=None,
+#                 attention_mask=None,
+#                 attention_vals=None,
+#                 token_type_ids=None,
+#                 position_ids=None,
+#                 head_mask=None,
+#                 inputs_embeds=None,
+#                 labels=None,
+#                 device=None):
+#
+#         # outputs = self.bert(input_ids,
+#         #                        attention_mask=attention_mask,
+#         #                        token_type_ids=token_type_ids,
+#         #                        position_ids=position_ids,
+#         #                        head_mask=head_mask)
+#         # logits = outputs[0]
+#         # logits = self.classifier(sequence_output)
+#
+#         # outputs = self.bert(
+#         #     input_ids,
+#         #     attention_mask=attention_mask,
+#         #     token_type_ids=token_type_ids,
+#         #     position_ids=position_ids,
+#         #     head_mask=head_mask,
+#         #     inputs_embeds=inputs_embeds,
+#         # )
+#
+#         # outputs = model(b_input_ids,
+#         #                 output_attentions=True,
+#         #                 output_hidden_states=False,
+#         #                 labels=None)
+#         outputs = self.bert(
+#             input_ids,
+#             output_attentions=True,
+#             output_hidden_states=False,
+#             # labels=None
+#         )
+#
+#         # pooled_output = outputs[0]
+#         # #
+#         # pooled_output = self.dropout(pooled_output)
+#
+#         logits = outputs[0] #self.classifier(pooled_output)
+#         # logits = self.softmax(logits)
+#         # logits = outputs[0]
+#
+#         outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
+#         # print('test2')
+#
+#         if labels is not None:
+#             # print('test3')
+#             loss_funct = CrossEntropyLoss(weight=torch.tensor(self.weights).to(device))
+#             loss_logits = loss_funct(logits.view(-1, self.num_labels), labels.view(-1))
+#             loss = loss_logits
+#             if (self.train_att):
+#
+#                 loss_att = 0
+#                 for i in range(self.num_sv_heads):
+#                     attention_weights = outputs[1][self.sv_layer][:, i, 0, :]
+#                     loss_att += self.lam * masked_cross_entropy(attention_weights, attention_vals, attention_mask)
+#                 loss = loss + loss_att
+#             outputs = (loss,) + outputs
+#
+#         return outputs  # (loss), logits, (hidden_states), (attentions)
 
 
 class Vocab_own():
