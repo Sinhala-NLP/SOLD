@@ -101,8 +101,8 @@ class ExplainableModel(ClassificationModel):
         MODEL_CLASSES = {
             "albert": (AlbertConfig, AlbertForSequenceClassification, AlbertTokenizer),
             "auto": (AutoConfig,
-                     # AutoModelForSequenceClassification,
-                     SC_weighted_BERT,
+                     AutoModelForSequenceClassification,
+                    #  SC_weighted_BERT,
                      AutoTokenizer),
             "bert": (BertConfig, BertForSequenceClassification, BertTokenizerFast),
             "bertweet": (
@@ -501,21 +501,21 @@ class ExplainableModel(ClassificationModel):
                 #                 attention_mask=b_input_mask,
                 #                 labels=b_labels, device=self.device)
 
-                # outputs = model(b_input_ids,
-                #                 output_attentions=True,
-                #                 output_hidden_states=False,
-                #                 labels=None)
-
                 outputs = model(b_input_ids,
-                                attention_mask = b_input_mask,
-                                labels=b_labels,
-                                attention_vals = b_att_val
-                                # output_attentions=True,
-                                # output_hidden_states=False,
-                                # labels=None)
-                                )
+                                output_attentions=True,
+                                output_hidden_states=False,
+                                labels=None)
 
-                logits = outputs[1]  # logits
+                # outputs = model(b_input_ids,
+                #                 attention_mask = b_input_mask,
+                #                 labels=b_labels,
+                #                 attention_vals = b_att_val
+                #                 # output_attentions=True,
+                #                 # output_hidden_states=False,
+                #                 # labels=None)
+                #                 )
+
+                logits = outputs[0]  # logits
 
             # Move logits and labels to CPU
             logits = logits.detach().cpu().numpy()
@@ -525,7 +525,7 @@ class ExplainableModel(ClassificationModel):
             #     print(label_ids)
             #     print(np.argmax(logits, axis=1).flatten())
 
-            attention_vectors = np.mean(outputs[2][11][:, :, 0, :].detach().cpu().numpy(), axis=1)
+            attention_vectors = np.mean(outputs[1][11][:, :, 0, :].detach().cpu().numpy(), axis=1)
 
             pred_labels += list(np.argmax(logits, axis=1).flatten())
             true_labels += list(label_ids.flatten())
