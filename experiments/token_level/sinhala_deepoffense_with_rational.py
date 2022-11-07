@@ -8,6 +8,7 @@ import more_itertools as mit
 
 import numpy as np
 import torch
+import argparse
 
 from deepoffense.explainability import ExplainableModel
 from deepoffense.common.deepoffense_config import LANGUAGE_FINETUNE, TEMP_DIRECTORY, SUBMISSION_FOLDER, \
@@ -45,7 +46,7 @@ def fix_the_random(seed_val=42):
     torch.cuda.manual_seed_all(seed_val)
 
 
-def return_params(path_name, att_lambda, num_classes=2):
+def return_params(path_name, att_lambda,model_name, num_classes=2):
     with open(path_name, mode='r') as f:
         params = json.load(f)
     for key in params:
@@ -83,7 +84,7 @@ def return_params(path_name, att_lambda, num_classes=2):
 
     params['data_file'] = 'data/SOLD_test.tsv'
     params['class_names'] = 'deepoffense/explainability/classes_two_SOLD.npy'
-    params['model_name'] = "sinhala-nlp/sinbert-sold-si"
+    params['model_name'] =model_name #"sinhala-nlp/sinbert-sold-si"
     params['best_params'] = False
 
     #TODO: pass these params from args file or user args
@@ -143,7 +144,13 @@ if __name__ == '__main__':
         'bert': 'deepoffense/explainability/bestModel_bert_base_uncased_Attn_train_FALSE.json',
     }
 
-    params = return_params(model_dict_params[model_to_use], float(attention_lambda))
+    parser = argparse.ArgumentParser(
+    description='''calculate explanation metrics  ''')
+    parser.add_argument('--model_name', required=False, help='model name', default="sinhala-nlp/sinbert-sold-si")
+    arguments = parser.parse_args()
+
+    model_name = "sinhala-nlp/sinbert-sold-si"
+    params = return_params(model_dict_params[model_to_use], float(attention_lambda), arguments.model_name)
 
     generate_explanation_dictionary(params)
     output_eraser = convert_to_eraser(params)
