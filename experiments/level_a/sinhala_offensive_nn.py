@@ -19,14 +19,14 @@ parser.add_argument('--train', required=False, help='train file', default='data/
 parser.add_argument('--test', required=False, help='test file')
 arguments = parser.parse_args()
 
-train_set = pd.read_csv(arguments.train, sep="\t")
-test_set = pd.read_csv(arguments.test, sep="\t")
+sold_train_file = pd.read_csv(arguments.train, sep="\t")
+sold_test_file = pd.read_csv(arguments.test, sep="\t")
 
 if arguments.lang == "en":
     train_set = pd.read_csv('data/other/other-data_sub_task_a.tsv', sep="\t")
     test_set = pd.read_csv('data/other/testset-levela.tsv', sep="\t")
     olid_test_labels = pd.read_csv('data/other/labels-levela.csv', names=['index', 'labels'])
-    train_set, test_set = train_test_split(train_set, test_size=0.1)
+
     train_set = train_set[['text', 'labels']]
     test_set = test_set.rename(columns={'tweet': 'text'})
     test_set['labels'] = encode(olid_test_labels['labels'])
@@ -34,8 +34,11 @@ if arguments.lang == "en":
     train_set['labels'] = encode(train_set["labels"])
 
 elif arguments.lang == "sin":
-    train = train_set.rename(columns={'label': 'labels'})
-    test = test_set.rename(columns={'label': 'labels'})
+    train = sold_train_file.rename(columns={'label': 'labels'})
+    test = sold_test_file.rename(columns={'label': 'labels'})
+
+    # train, test = train_test_split(sold_train_file, test_size=0.1, random_state=777)
+
     train_set = train[['text', 'labels']]
     train_set['labels'] = encode(train_set['labels'])
     test_set = test[['text', 'labels']]
@@ -45,6 +48,7 @@ elif arguments.lang == "sin":
 elif arguments.lang == "hin":
     hindi_train_file = pd.read_csv('data/other/hindi_dataset.tsv', sep="\t")
     train = hindi_train_file.rename(columns={'task_1': 'labels'})
+
     hindi_test_file = pd.read_csv('data/other/hasoc2019_hi_test_gold_2919.tsv', sep="\t")
     test = hindi_test_file.rename(columns={'subtask_a': 'labels', 'tweet': 'text'})
 
@@ -66,7 +70,7 @@ for i in range(args["n_fold"]):
     model.train_model()
     print("Finished Training")
     model = OffensiveNNModel(model_type_or_path=args["best_model_dir"])
-    predictions = model.predict(test_sentences)
+    predictions, raw_outputs = model.predict(test_sentences)
     test_preds[:, i] = predictions
     print("Completed Fold {}".format(i))
 
@@ -80,3 +84,4 @@ test_set['predictions'] = decode(test_set['predictions'])
 test_set['labels'] = decode(test_set['labels'])
 
 print_information(test_set, "predictions", "labels")
+
