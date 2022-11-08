@@ -1,6 +1,4 @@
-from contextlib import redirect_stdout
-
-from sklearn.metrics import recall_score, precision_score, f1_score, accuracy_score
+from sklearn.metrics import recall_score, precision_score, f1_score
 
 
 def print_information(df, pred_column, real_column):
@@ -9,21 +7,19 @@ def print_information(df, pred_column, real_column):
 
     labels = set(predictions)
 
-    with open('out.txt', 'w') as f:
-        with redirect_stdout(f):
-            for label in labels:
-                print()
-                print("Stat of the {} Class".format(label))
-                print("Recall {}".format(recall_score(real_values, predictions, labels=labels, pos_label=label)))
-                print("Precision {}".format(precision_score(real_values, predictions, labels=labels, pos_label=label)))
-                print("F1 Score {}".format(f1_score(real_values, predictions, labels=labels, pos_label=label)))
+    for label in labels:
+        print()
+        print("Stat of the {} Class".format(label))
+        print("Recall {}".format(recall_score(real_values, predictions, labels=labels, pos_label=label)))
+        print("Precision {}".format(precision_score(real_values, predictions, labels=labels, pos_label=label)))
+        print("F1 Score {}".format(f1_score(real_values, predictions, labels=labels, pos_label=label)))
 
-                print()
-                print("Weighted Recall {}".format(recall_score(real_values, predictions, average='weighted')))
-                print("Weighted Precision {}".format(precision_score(real_values, predictions, average='weighted')))
-                print("Weighter F1 Score {}".format(f1_score(real_values, predictions, average='weighted')))
+    print()
+    print("Weighted Recall {}".format(recall_score(real_values, predictions, average='weighted')))
+    print("Weighted Precision {}".format(precision_score(real_values, predictions, average='weighted')))
+    print("Weighter F1 Score {}".format(f1_score(real_values, predictions, average='weighted')))
 
-                print("Macro F1 Score {}".format(f1_score(real_values, predictions, average='macro')))
+    print("Macro F1 Score {}".format(f1_score(real_values, predictions, average='macro')))
 
 
 def print_information_multi_class(df, pred_column, real_column):
@@ -40,17 +36,8 @@ def print_information_multi_class(df, pred_column, real_column):
     #     print("F1 Score {}".format(f1_score(real_values, predictions, labels=labels, pos_label=label, average='weighted')))
 
     print()
-    with open('out.txt','w') as f:
-        with redirect_stdout(f):
-    # with open('outputresults.txt', 'a') as f:
+    print("Weighted Recall {}".format(recall_score(real_values, predictions, average='weighted')))
+    print("Weighted Precision {}".format(precision_score(real_values, predictions, average='weighted')))
+    print("Weighter F1 Score {}".format(f1_score(real_values, predictions, average='weighted')))
 
-            print("Accuracy {}".format(accuracy_score(real_values, predictions)))
-            print("Weighted Recall {}".format(recall_score(real_values, predictions, average='weighted')))
-            print("Weighted Precision {}".format(precision_score(real_values, predictions, average='weighted')))
-            print("Weighter F1 Score {}".format(f1_score(real_values, predictions, average='weighted')))
-
-            print("Macro F1 Score {}".format(f1_score(real_values, predictions, average='macro')))
-
-
-
-    # return accuracy_score(real_values, predictions)
+    print("Macro F1 Score {}".format(f1_score(real_values, predictions, average='macro')))
