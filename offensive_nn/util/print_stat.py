@@ -19,4 +19,3 @@ def print_information(df, pred_column, real_column):
     print("Weighted Precision {}".format(precision_score(real_values, predictions, average='weighted')))
     print("Weighter F1 Score {}".format(f1_score(real_values, predictions, average='weighted')))
 
-    print("Macro F1 Score {}".format(f1_score(real_values, predictions, average='macro')))
