@@ -127,7 +127,7 @@ m2 = np.mean(df['2'])
 l1 = float(arguments.sdvalue)
 
 # get all the offensive and not offensive posts from the dataset
-df_group_posts = result.groupby('label')
+df_group_posts = result.groupby('label_y')
 offensive_posts = df_group_posts.get_group(1.0)
 for ix in offensive_posts.index:
     off_prob = offensive_posts.loc[ix]['1']
@@ -143,8 +143,8 @@ for ix in offensive_not_posts.index:
 df_new = result.iloc[np.where(result['1'].isin(new))]
 df_new2 = result.iloc[np.where(result['2'].isin(new2))]
 new_dataframe = pd.concat([df_new,df_new2]).drop_duplicates()
-new_dataframe = df_new.filter(['id', 'text', 'label'])
-new_dataframe['label'] = new_dataframe['label'].map({0.0: 'NOT', 1.0: 'OFF'})
+new_dataframe = df_new.filter(['id', 'text', 'label_y'])
+new_dataframe['label'] = new_dataframe['label_y'].map({0.0: 'NOT', 1.0: 'OFF'})
 # new_dataframe.rename({'text': 'text', 'preds_y': 'label'}, axis=1, inplace=True)
 new_dataframe.to_csv('new_train.csv')
 
