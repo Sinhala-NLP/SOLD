@@ -37,8 +37,8 @@ if arguments.lang == "en":
     trn_data, tst_data = train_test_split(trn_data, test_size=0.1)
 
 elif arguments.lang == "sin":
-    trn_data = trn_data.rename(columns={'content': 'text', 'Class': 'labels'})
-    tst_data = tst_data.rename(columns={'content': 'text', 'Class': 'labels'})
+    trn_data = trn_data.rename(columns={'label': 'labels'})
+    tst_data = tst_data.rename(columns={'label': 'labels'})
 
 elif arguments.lang == "hin":
     trn_data = trn_data.rename(columns={'task_1': 'labels'})

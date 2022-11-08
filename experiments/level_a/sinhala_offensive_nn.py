@@ -15,7 +15,12 @@ parser = argparse.ArgumentParser(
 parser.add_argument('--model_name', required=False, help='model name', default=None)
 parser.add_argument('--lang', required=False, help='language', default="en")  # en or sin
 parser.add_argument('--algorithm', required=False, help='algorithm', default="cnn2D")  # lstm or cnn2D
+parser.add_argument('--train', required=False, help='train file', default='data/olid/olid-training-v1.0.tsv')
+parser.add_argument('--test', required=False, help='test file')
 arguments = parser.parse_args()
+
+sold_train_file = pd.read_csv(arguments.train, sep="\t")
+sold_test_file = pd.read_csv(arguments.test, sep="\t")
 
 if arguments.lang == "en":
     train_set = pd.read_csv('data/other/other-data_sub_task_a.tsv', sep="\t")
@@ -29,11 +34,8 @@ if arguments.lang == "en":
     train_set['labels'] = encode(train_set["labels"])
 
 elif arguments.lang == "sin":
-    sold_train_file = pd.read_csv('data/SOLD_train.tsv', sep="\t")
-    train = sold_train_file.rename(columns={'content': 'text', 'Class': 'labels'})
-
-    sold_test_file = pd.read_csv('data/SOLD_test.tsv', sep="\t")
-    test = sold_test_file.rename(columns={'content': 'text', 'Class': 'labels'})
+    train = sold_train_file.rename(columns={'label': 'labels'})
+    test = sold_test_file.rename(columns={'label': 'labels'})
 
     # train, test = train_test_split(sold_train_file, test_size=0.1, random_state=777)
 
@@ -82,3 +84,4 @@ test_set['predictions'] = decode(test_set['predictions'])
 test_set['labels'] = decode(test_set['labels'])
 
 print_information(test_set, "predictions", "labels")
+
