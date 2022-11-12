@@ -19,7 +19,7 @@ import more_itertools as mit
 import json
 from transformers.models.bert.modeling_bert import *
 from sklearn.preprocessing import LabelEncoder
-from keras.preprocessing.sequence import pad_sequences
+from keras_preprocessing.sequence import pad_sequences
 import torch
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
 from transformers import AutoTokenizer, AutoModelForSequenceClassification

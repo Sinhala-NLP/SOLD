@@ -101,7 +101,7 @@ def generate_explanation_dictionary(params):
 
     final_list_dict = model.get_final_dict_with_rational(params, params['data_file'], topk=5)
 
-    path_name = model_dict_params[model_to_use]
+    path_name = 'deepoffense/explainability/bestModel_bert_base_uncased_Attn_train_FALSE.json'
 
     path_name_explanation = 'explanations_dicts/' + path_name.split('/')[1].split('.')[0] + '_' + str(
         params['att_lambda']) + '_explanation_top5.json'
@@ -140,9 +140,7 @@ if __name__ == '__main__':
     # model_to_use = 'bert'
     attention_lambda = 100
 
-    model_dict_params = {
-        'bert': 'deepoffense/explainability/bestModel_bert_base_uncased_Attn_train_FALSE.json',
-    }
+    model_dict_param = 'deepoffense/explainability/bestModel_bert_base_uncased_Attn_train_FALSE.json'
 
     parser = argparse.ArgumentParser(
     description='''calculate explanation metrics  ''')
@@ -152,7 +150,7 @@ if __name__ == '__main__':
 
     model_name = arguments.model_name
     model_to_use = arguments.model_to_use
-    params = return_params(model_dict_params[model_to_use], float(attention_lambda), model_name, model_to_use)
+    params = return_params(model_dict_param, float(attention_lambda), model_name, model_to_use)
 
     generate_explanation_dictionary(params)
     output_eraser = convert_to_eraser(params)

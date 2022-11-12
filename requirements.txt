@@ -1,10 +1,10 @@
-tensorflow==2.8.0
+tensorflow
 pandas
 numpy
 gensim
 sklearn
 datasets
 tensorboardX
-transformers==4.16.2
+transformers
 SentencePiece
 ekphrasis

@@ -57,6 +57,7 @@ from deepoffense.classification.transformer_models.xlm_model import XLMForSequen
 from deepoffense.classification.transformer_models.xlm_roberta_model import XLMRobertaForSequenceClassification
 from deepoffense.classification.transformer_models.xlnet_model import XLNetForSequenceClassification
 from deepoffense.custom_models.models import ElectraForSequenceClassification
+from deepoffense.explainability.explainability_args import ClassificationArgs
 
 try:
     import wandb
