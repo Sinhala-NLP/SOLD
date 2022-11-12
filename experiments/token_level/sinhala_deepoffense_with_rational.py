@@ -46,7 +46,7 @@ def fix_the_random(seed_val=42):
     torch.cuda.manual_seed_all(seed_val)
 
 
-def return_params(path_name, att_lambda,model_name, num_classes=2):
+def return_params(path_name, att_lambda,model_name,model_to_use, num_classes=2):
     with open(path_name, mode='r') as f:
         params = json.load(f)
     for key in params:
@@ -78,7 +78,7 @@ def return_params(path_name, att_lambda,model_name, num_classes=2):
     if (params['num_classes'] == 2 and (params['auto_weights'] == False)):
         params['weights'] = [1.0, 1.0]
 
-    params['model_to_use'] = 'bert'
+    params['model_to_use'] = model_to_use
     params['variance'] = 1
     params['device'] = 'cuda'
 
@@ -137,7 +137,7 @@ def convert_to_eraser(params):
     return output_eraser
 
 if __name__ == '__main__':
-    model_to_use = 'bert'
+    # model_to_use = 'bert'
     attention_lambda = 100
 
     model_dict_params = {
@@ -147,10 +147,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
     description='''calculate explanation metrics  ''')
     parser.add_argument('--model_name', required=False, help='model name', default="sinhala-nlp/sinbert-sold-si")
+    parser.add_argument('--model_to_use', required=False, help='model type', default="roberta")
     arguments = parser.parse_args()
 
-    model_name = "sinhala-nlp/sinbert-sold-si"
-    params = return_params(model_dict_params[model_to_use], float(attention_lambda), arguments.model_name)
+    model_name = arguments.model_name
+    model_to_use = arguments.model_to_use
+    params = return_params(model_dict_params[model_to_use], float(attention_lambda), model_name, model_to_use)
 
     generate_explanation_dictionary(params)
     output_eraser = convert_to_eraser(params)
