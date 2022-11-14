@@ -37,6 +37,7 @@ The dataset contains of the following columns.
 * **rationals** - Offensive tokens. If a token is offensive it is shown as 1 and 0 otherwise.
 * **label** - sentence-level label, offensive or not-offensive. 
 
+![Alt text](images/SOLD_Examples.png?raw=true "Four examples from the SOLD dataset")
 
 SemiSOLD can be loaded to a pandas dataframe using the following code. 
 
