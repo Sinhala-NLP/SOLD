@@ -21,7 +21,23 @@ To provide a human explanation of labelling, we collect rationales for the offen
 ![Alt text](images/SOLD_Annotation.png?raw=true "Annotation Process")
 
 ## Data
-Dataset is released in HuggingFace. 
+Dataset is released in HuggingFace. It can be loaded in to pandas dataframes using the following code. 
+
+```python
+from datasets import Dataset
+from datasets import load_dataset
+
+sold_train = Dataset.to_pandas(load_dataset('sinhala-nlp/SOLD', split='train'))
+```
+
+SemiSOLD == can be == loaded to a pandas dataframe using the following code. 
+
+```python
+from datasets import Dataset
+from datasets import load_dataset
+
+semi_sold = Dataset.to_pandas(load_dataset('sinhala-nlp/SemiSOLD', split='train'))
+```
 
 
 ## Acknowledgments
