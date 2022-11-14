@@ -1,2 +1,1 @@
 from deepoffense.classification.classification_model import ClassificationModel
-from deepoffense.classification.multi_label_classification_model import MultiLabelClassificationModel
