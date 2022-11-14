@@ -28,9 +28,17 @@ from datasets import Dataset
 from datasets import load_dataset
 
 sold_train = Dataset.to_pandas(load_dataset('sinhala-nlp/SOLD', split='train'))
+sold_test = Dataset.to_pandas(load_dataset('sinhala-nlp/SOLD', split='test'))
 ```
+The dataset contains of the following columns. 
+* **post_id** - Twitter ID
+* **text** - 
+* **tokens** - 
+* **rationals** - 
+* **label** -
 
-SemiSOLD == can be == loaded to a pandas dataframe using the following code. 
+
+SemiSOLD can be loaded to a pandas dataframe using the following code. 
 
 ```python
 from datasets import Dataset
