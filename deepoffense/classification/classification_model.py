@@ -69,7 +69,7 @@ from deepoffense.classification.transformer_models.roberta_model import RobertaF
 from deepoffense.classification.transformer_models.xlm_model import XLMForSequenceClassification
 from deepoffense.classification.transformer_models.xlm_roberta_model import XLMRobertaForSequenceClassification
 from deepoffense.classification.transformer_models.xlnet_model import XLNetForSequenceClassification
-from deepoffense.custom_models.models import ElectraForSequenceClassification
+
 
 try:
     import wandb
@@ -134,11 +134,6 @@ class ClassificationModel:
                 DistilBertConfig,
                 DistilBertForSequenceClassification,
                 DistilBertTokenizerFast,
-            ),
-            "electra": (
-                ElectraConfig,
-                ElectraForSequenceClassification,
-                ElectraTokenizerFast,
             ),
             "flaubert": (
                 FlaubertConfig,
