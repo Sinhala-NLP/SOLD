@@ -15,7 +15,7 @@ SEED = 777
 
 # training instances = 7000 > if batch size=8, batches = 875 > evaluate during training steps -> 80 or 175
 
-args = {
+sinhala_args = {
     'output_dir': 'temp/outputs/',
     "best_model_dir": "temp/outputs/best_model",
     'cache_dir': 'temp/cache_dir/',
@@ -36,15 +36,15 @@ args = {
     'do_lower_case': False,
     'n_fold': 1,
 
-    'logging_steps': 60,
-    'save_steps': 60,
+    'logging_steps': 120,
+    'save_steps': 120,
     "no_cache": False,
     "no_save": False,
     "save_recent_only": True,
     'save_model_every_epoch': False,
     'evaluate_during_training': True,
     "evaluate_during_training_silent": True,
-    'evaluate_during_training_steps': 60,
+    'evaluate_during_training_steps': 120,
     "evaluate_during_training_verbose": True,
     'use_cached_eval_features': False,
     "save_best_model": True,
