@@ -32,10 +32,10 @@ sold_test = Dataset.to_pandas(load_dataset('sinhala-nlp/SOLD', split='test'))
 ```
 The dataset contains of the following columns. 
 * **post_id** - Twitter ID
-* **text** - 
-* **tokens** - 
-* **rationals** - 
-* **label** -
+* **text** - Post text
+* **tokens** - Tokenised text. Each token is seperated by a space. 
+* **rationals** - Offensive tokens. If a token is offensive it is shown as 1 and 0 otherwise.
+* **label** - sentence-level label, offensive or not-offensive. 
 
 
 SemiSOLD can be loaded to a pandas dataframe using the following code. 
