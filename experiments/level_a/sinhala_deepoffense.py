@@ -116,7 +116,7 @@ else:
                 complete_df.append([row['text'], label])
 
         df = pd.DataFrame(complete_df, columns=["text", "labels"])
-        if off == "true":
+        if off == "off":
             filtered_df = df.loc[df['labels'] == "OFF"]
         else:
             filtered_df = df
