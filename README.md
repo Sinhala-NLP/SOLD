@@ -35,7 +35,7 @@ The dataset contains of the following columns.
 * **text** - Post text
 * **tokens** - Tokenised text. Each token is seperated by a space. 
 * **rationals** - Offensive tokens. If a token is offensive it is shown as 1 and 0 otherwise.
-* **label** - sentence-level label, offensive or not-offensive. 
+* **label** - Sentence-level label, offensive or not-offensive. 
 
 ![Alt text](images/SOLD_Examples.png?raw=true "Four examples from the SOLD dataset")
 
