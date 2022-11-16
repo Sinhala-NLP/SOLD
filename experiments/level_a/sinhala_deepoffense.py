@@ -1,5 +1,7 @@
 import argparse
 import numpy as np
+import pandas as pd
+import statistics
 import os
 import shutil
 import sklearn
@@ -23,6 +25,9 @@ parser = argparse.ArgumentParser(
 parser.add_argument('--model_name', required=False, help='model name', default="xlm-roberta-large")
 parser.add_argument('--model_type', required=False, help='model type', default="xlmroberta")
 parser.add_argument('--cuda_device', required=False, help='cuda device', default=0)
+parser.add_argument('--augment', required=False, help='augment', default="False")
+parser.add_argument('--std', required=False, help='standard deviation', default="False")
+parser.add_argument('--augment_type', required=False, help='tyoe of the data augmentation', default="off")
 # parser.add_argument('--lang', required=False, help='language', default="sin")  # en or sin or hin
 arguments = parser.parse_args()
 
@@ -66,6 +71,27 @@ if sinhala_args["evaluate_during_training"]:
                                 use_cuda=torch.cuda.is_available(),
                                 cuda_device=cuda_device)
     train_df, eval_df = train_test_split(train, test_size=0.1, random_state=SEED)
+    if arguments.augment == "true":
+        semi_sold = Dataset.to_pandas(load_dataset('sinhala-nlp/SemiSOLD', split='train'))
+        std = float(arguments.std)
+        off = arguments.augment_type
+        complete_df = []
+        for index, row in semi_sold.iterrows():
+            model_scores = [row['xlmr'], row['xlmt'], row['sinbert']]
+            model_std = statistics.stdev(model_scores)
+            if model_std < std:
+                model_average = statistics.mean(model_scores)
+                label = "OFF" if model_average > 0.5 else "NOT"
+                complete_df.append([row['text'], label])
+
+        df = pd.DataFrame(complete_df, columns=["text", "labels"])
+        if off == "true":
+            filtered_df = df.loc[df['labels'] == "OFF"]
+        else:
+            filtered_df = df
+
+        filtered_df['labels'] = encode(filtered_df["labels"])
+        train_df = pd.concat(train_df, filtered_df)
     model.train_model(train_df, eval_df=eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1,
                       accuracy=sklearn.metrics.accuracy_score)
 
@@ -74,6 +100,27 @@ if sinhala_args["evaluate_during_training"]:
 else:
     model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=sinhala_args,
                                 use_cuda=torch.cuda.is_available(), cuda_device=cuda_device)
+    if arguments.augment == "true":
+        semi_sold = Dataset.to_pandas(load_dataset('sinhala-nlp/SemiSOLD', split='train'))
+        std = float(arguments.std)
+        off = arguments.augment_type
+        complete_df = []
+        for index, row in semi_sold.iterrows():
+            model_scores = [row['xlmr'], row['xlmt'], row['sinbert']]
+            model_std = statistics.stdev(model_scores)
+            if model_std < std:
+                model_average = statistics.mean(model_scores)
+                label = "OFF" if model_average > 0.5 else "NOT"
+                complete_df.append([row['text'], label])
+
+        df = pd.DataFrame(complete_df, columns=["text", "labels"])
+        if off == "true":
+            filtered_df = df.loc[df['labels'] == "OFF"]
+        else:
+            filtered_df = df
+
+        filtered_df['labels'] = encode(filtered_df["labels"])
+        train = pd.concat(train, filtered_df)
     model.train_model(train, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
     predictions, raw_outputs = model.predict(test_sentences)
     test['predictions'] = predictions
