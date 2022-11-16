@@ -76,7 +76,7 @@ if sinhala_args["evaluate_during_training"]:
         print("Downloading SemiSOLD")
         semi_sold = Dataset.to_pandas(load_dataset('sinhala-nlp/SemiSOLD', split='train'))
         std = float(arguments.std)
-        off = arguments.augment_type
+        augment_type = arguments.augment_type
         complete_df = []
         for index, row in semi_sold.iterrows():
             model_scores = [row['xlmr'], row['xlmt'], row['sinbert']]
@@ -87,7 +87,7 @@ if sinhala_args["evaluate_during_training"]:
                 complete_df.append([row['text'], label])
 
         df = pd.DataFrame(complete_df, columns=["text", "labels"])
-        if off == "true":
+        if augment_type == "off":
             filtered_df = df.loc[df['labels'] == "OFF"]
         else:
             filtered_df = df
@@ -106,7 +106,7 @@ else:
         print("Downloading SemiSOLD")
         semi_sold = Dataset.to_pandas(load_dataset('sinhala-nlp/SemiSOLD', split='train'))
         std = float(arguments.std)
-        off = arguments.augment_type
+        augment_type = arguments.augment_type
         complete_df = []
         for index, row in semi_sold.iterrows():
             model_scores = [row['xlmr'], row['xlmt'], row['sinbert']]
@@ -117,7 +117,7 @@ else:
                 complete_df.append([row['text'], label])
 
         df = pd.DataFrame(complete_df, columns=["text", "labels"])
-        if off == "true":
+        if augment_type == "off":
             filtered_df = df.loc[df['labels'] == "OFF"]
         else:
             filtered_df = df
