@@ -92,6 +92,7 @@ if sinhala_args["evaluate_during_training"]:
 
         filtered_df['labels'] = encode(filtered_df["labels"])
         train_df = train_df.append(filtered_df)
+        train_df = train_df.sample(frac=1, random_state=SEED).reset_index(drop=True)
     model.train_model(train_df, eval_df=eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1,
                       accuracy=sklearn.metrics.accuracy_score)
 
