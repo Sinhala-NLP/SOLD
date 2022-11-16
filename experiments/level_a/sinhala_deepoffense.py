@@ -103,6 +103,7 @@ else:
     model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=sinhala_args,
                                 use_cuda=torch.cuda.is_available(), cuda_device=cuda_device)
     if arguments.augment == "true":
+        print("Downloading SemiSOLD")
         semi_sold = Dataset.to_pandas(load_dataset('sinhala-nlp/SemiSOLD', split='train'))
         std = float(arguments.std)
         off = arguments.augment_type
@@ -116,13 +117,13 @@ else:
                 complete_df.append([row['text'], label])
 
         df = pd.DataFrame(complete_df, columns=["text", "labels"])
-        if off == "off":
+        if off == "true":
             filtered_df = df.loc[df['labels'] == "OFF"]
         else:
             filtered_df = df
 
         filtered_df['labels'] = encode(filtered_df["labels"])
-        train = pd.concat(train, filtered_df)
+        train_df = train.append(filtered_df)
     model.train_model(train, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
     predictions, raw_outputs = model.predict(test_sentences)
     test['predictions'] = predictions
