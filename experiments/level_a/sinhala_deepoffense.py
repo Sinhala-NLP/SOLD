@@ -93,7 +93,7 @@ if sinhala_args["evaluate_during_training"]:
             filtered_df = df
 
         filtered_df['labels'] = encode(filtered_df["labels"])
-        train_df = pd.concat(train_df, filtered_df)
+        train_df = train_df.append(filtered_df)
     model.train_model(train_df, eval_df=eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1,
                       accuracy=sklearn.metrics.accuracy_score)
 
