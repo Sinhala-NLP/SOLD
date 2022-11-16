@@ -25,8 +25,8 @@ parser = argparse.ArgumentParser(
 parser.add_argument('--model_name', required=False, help='model name', default="xlm-roberta-large")
 parser.add_argument('--model_type', required=False, help='model type', default="xlmroberta")
 parser.add_argument('--cuda_device', required=False, help='cuda device', default=0)
-parser.add_argument('--augment', required=False, help='augment', default="False")
-parser.add_argument('--std', required=False, help='standard deviation', default="False")
+parser.add_argument('--augment', required=False, help='augment', default="false")
+parser.add_argument('--std', required=False, help='standard deviation', default="0.01")
 parser.add_argument('--augment_type', required=False, help='tyoe of the data augmentation', default="off")
 # parser.add_argument('--lang', required=False, help='language', default="sin")  # en or sin or hin
 arguments = parser.parse_args()
@@ -71,7 +71,9 @@ if sinhala_args["evaluate_during_training"]:
                                 use_cuda=torch.cuda.is_available(),
                                 cuda_device=cuda_device)
     train_df, eval_df = train_test_split(train, test_size=0.1, random_state=SEED)
+    print(arguments.augment)
     if arguments.augment == "true":
+        print("Downloading SemiSOLD")
         semi_sold = Dataset.to_pandas(load_dataset('sinhala-nlp/SemiSOLD', split='train'))
         std = float(arguments.std)
         off = arguments.augment_type
