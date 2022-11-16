@@ -27,7 +27,7 @@ parser.add_argument('--model_type', required=False, help='model type', default="
 parser.add_argument('--cuda_device', required=False, help='cuda device', default=0)
 parser.add_argument('--augment', required=False, help='augment', default="false")
 parser.add_argument('--std', required=False, help='standard deviation', default="0.01")
-parser.add_argument('--augment_type', required=False, help='tyoe of the data augmentation', default="off")
+parser.add_argument('--augment_type', required=False, help='type of the data augmentation', default="off")
 # parser.add_argument('--lang', required=False, help='language', default="sin")  # en or sin or hin
 arguments = parser.parse_args()
 
