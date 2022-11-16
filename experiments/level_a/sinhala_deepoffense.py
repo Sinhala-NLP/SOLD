@@ -51,8 +51,6 @@ tst_data = sold_test.rename(columns={'label': 'labels'})
 train = trn_data[['text', 'labels']]
 test = tst_data[['text', 'labels']]
 
-# Train the model
-print("Started Training")
 
 train['labels'] = encode(train["labels"])
 test['labels'] = encode(test["labels"])
@@ -98,6 +96,7 @@ if sinhala_args["evaluate_during_training"]:
                       accuracy=sklearn.metrics.accuracy_score)
 
     predictions, raw_outputs = model.predict(test_sentences)
+    print(predictions)
     test['predictions'] = predictions
 else:
     model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=sinhala_args,
