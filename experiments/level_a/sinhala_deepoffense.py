@@ -85,19 +85,19 @@ if sinhala_args["evaluate_during_training"]:
                 complete_df.append([row['text'], label])
 
         df = pd.DataFrame(complete_df, columns=["text", "labels"])
+        df['labels'] = encode(df["labels"])
         if augment_type == "off":
-            filtered_df = df.loc[df['labels'] == "OFF"]
+            filtered_df = df.loc[df['labels'] == 1]
         else:
             filtered_df = df
 
-        filtered_df['labels'] = encode(filtered_df["labels"])
+        print("Augmenting {} records".format(filtered_df.shape[0]))
         train_df = train_df.append(filtered_df)
         train_df = train_df.sample(frac=1, random_state=SEED).reset_index(drop=True)
     model.train_model(train_df, eval_df=eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1,
                       accuracy=sklearn.metrics.accuracy_score)
 
     predictions, raw_outputs = model.predict(test_sentences)
-    print(predictions)
     test['predictions'] = predictions
 else:
     model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=sinhala_args,
@@ -117,12 +117,12 @@ else:
                 complete_df.append([row['text'], label])
 
         df = pd.DataFrame(complete_df, columns=["text", "labels"])
+        df['labels'] = encode(df["labels"])
         if augment_type == "off":
-            filtered_df = df.loc[df['labels'] == "OFF"]
+            filtered_df = df.loc[df['labels'] == 1]
         else:
             filtered_df = df
 
-        filtered_df['labels'] = encode(filtered_df["labels"])
         train_df = train.append(filtered_df)
     model.train_model(train, macro_f1=macro_f1, weighted_f1=weighted_f1, accuracy=sklearn.metrics.accuracy_score)
     predictions, raw_outputs = model.predict(test_sentences)
