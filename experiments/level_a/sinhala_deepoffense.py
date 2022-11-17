@@ -11,7 +11,7 @@ from datasets import load_dataset
 from sklearn.model_selection import train_test_split
 
 from deepoffense.classification import ClassificationModel
-from experiments.level_a.deepoffense_config import TEMP_DIRECTORY, SUBMISSION_FOLDER, sinhala_args, SEED, RESULT_FILE
+from experiments.level_a.deepoffense_config import TEMP_DIRECTORY, SUBMISSION_FOLDER, sinhala_args, hindi_args, SEED, RESULT_FILE
 from deepoffense.util.evaluation import macro_f1, weighted_f1
 from deepoffense.util.label_converter import decode, encode
 from deepoffense.util.print_stat import print_information
@@ -28,6 +28,8 @@ parser.add_argument('--cuda_device', required=False, help='cuda device', default
 parser.add_argument('--augment', required=False, help='augment', default="false")
 parser.add_argument('--std', required=False, help='standard deviation', default="0.01")
 parser.add_argument('--augment_type', required=False, help='type of the data augmentation', default="off")
+parser.add_argument('--transfer', required=False, help='transfer learning', default="false")
+parser.add_argument('--transfer_language', required=False, help='transfer learning', default="hi")
 # parser.add_argument('--lang', required=False, help='language', default="sin")  # en or sin or hin
 arguments = parser.parse_args()
 
@@ -43,9 +45,7 @@ sold_test = Dataset.to_pandas(load_dataset('sinhala-nlp/SOLD', split='test'))
 trn_data = sold_train.rename(columns={'label': 'labels'})
 tst_data = sold_test.rename(columns={'label': 'labels'})
 
-# elif arguments.lang == "hin":
-#     trn_data = trn_data.rename(columns={'task_1': 'labels'})
-#     tst_data = tst_data.rename(columns={'subtask_a': 'labels', 'tweet': 'text'})
+
 
 # load training data
 train = trn_data[['text', 'labels']]
@@ -57,9 +57,44 @@ test['labels'] = encode(test["labels"])
 
 test_sentences = test['text'].tolist()
 
-MODEL_NAME = arguments.model_name
+
 MODEL_TYPE = arguments.model_type
+MODEL_NAME = arguments.model_name
 cuda_device = int(arguments.cuda_device)
+
+if arguments.transfer == "true" and arguments.transfer_language == "hi":
+    if os.path.exists(hindi_args['output_dir']) and os.path.isdir(hindi_args['output_dir']):
+        shutil.rmtree(hindi_args['output_dir'])
+
+    hindi_train = pd.read_csv("data/other/hindi_dataset.tsv", sep="\t")
+    hindi_train = hindi_train.rename(columns={'task_1': 'labels'})
+    hindi_train = hindi_train[['text', 'labels']]
+    hindi_train['labels'] = encode(hindi_train["labels"])
+
+    hindi_test = pd.read_csv("data/other/hasoc2019_hi_test_gold_2919.tsv", sep="\t")
+    hindi_test = hindi_test.rename(columns={'subtask_a': 'labels', 'tweet': 'text'})
+    hindi_test = hindi_test[['text', 'labels']]
+    hindi_test = hindi_test[['text', 'labels']]
+
+    hindi_test_sentences = hindi_test['text'].tolist()
+
+    hindi_train_df, hindi_eval_df = train_test_split(hindi_train, test_size=0.1, random_state=SEED)
+    model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=hindi_args,
+                                use_cuda=torch.cuda.is_available(), cuda_device=cuda_device)
+
+    model.train_model(hindi_train_df, eval_df=hindi_eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1,
+                      accuracy=sklearn.metrics.accuracy_score)
+
+    hindi_predictions, hindi_raw_outputs = model.predict(hindi_test_sentences)
+    hindi_test['predictions'] = hindi_predictions
+    hindi_test['predictions'] = decode(hindi_test['predictions'])
+    hindi_test['labels'] = decode(hindi_test['labels'])
+
+    # time.sleep(5)
+    print("Hindi Results")
+    print_information(hindi_test, "predictions", "labels")
+    MODEL_NAME = hindi_args['best_model_dir']
+
 
 if sinhala_args["evaluate_during_training"]:
     if os.path.exists(sinhala_args['output_dir']) and os.path.isdir(sinhala_args['output_dir']):
@@ -69,7 +104,6 @@ if sinhala_args["evaluate_during_training"]:
                                 use_cuda=torch.cuda.is_available(),
                                 cuda_device=cuda_device)
     train_df, eval_df = train_test_split(train, test_size=0.1, random_state=SEED)
-    print(arguments.augment)
     if arguments.augment == "true":
         print("Downloading SemiSOLD")
         semi_sold = Dataset.to_pandas(load_dataset('sinhala-nlp/SemiSOLD', split='train'))
