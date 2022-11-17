@@ -69,12 +69,15 @@ if arguments.transfer == "true" and arguments.transfer_language == "hi":
     hindi_train = pd.read_csv("data/other/hindi_dataset.tsv", sep="\t")
     hindi_train = hindi_train.rename(columns={'task_1': 'labels'})
     hindi_train = hindi_train[['text', 'labels']]
+    hindi_train['labels'] = hindi_train['labels'].replace(['HOF'], 'OFF')
     hindi_train['labels'] = encode(hindi_train["labels"])
+
 
     hindi_test = pd.read_csv("data/other/hasoc2019_hi_test_gold_2919.tsv", sep="\t")
     hindi_test = hindi_test.rename(columns={'subtask_a': 'labels', 'tweet': 'text'})
     hindi_test = hindi_test[['text', 'labels']]
-    hindi_test = hindi_test[['text', 'labels']]
+    hindi_test['labels'] = hindi_test['labels'].replace(['HOF'], 'OFF')
+    hindi_test['labels'] = encode(hindi_test["labels"])
 
     hindi_test_sentences = hindi_test['text'].tolist()
 
