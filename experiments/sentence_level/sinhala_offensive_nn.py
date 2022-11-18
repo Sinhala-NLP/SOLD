@@ -5,7 +5,7 @@ import statistics
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from experiments.level_a.offensivenn_config import args
+from experiments.sentence_level.offensivenn_config import args
 from offensive_nn.offensive_nn_model import OffensiveNNModel
 from offensive_nn.util.label_converter import encode, decode
 from offensive_nn.util.print_stat import print_information

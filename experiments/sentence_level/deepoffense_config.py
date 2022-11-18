@@ -3,14 +3,7 @@ from multiprocessing import cpu_count
 TEMP_DIRECTORY = "temp/data"
 TRAIN_FILE = "train.tsv"
 TEST_FILE = "test.tsv"
-DEV_RESULT_FILE = "dev_result.tsv"
-DEV_EVAL_FILE = 'dev_eval.txt'
 RESULT_FILE = "result.csv"
-SUBMISSION_FOLDER = "transformers"
-SUBMISSION_FILE = "transformers"
-MODEL_TYPE = "xlmroberta"
-MODEL_NAME = "xlm-roberta-large"
-LANGUAGE_FINETUNE = False
 SEED = 777
 
 # training instances = 7000 > if batch size=8, batches = 875 > evaluate during training steps -> 80 or 175

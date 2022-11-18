@@ -11,15 +11,13 @@ from datasets import load_dataset
 from sklearn.model_selection import train_test_split
 
 from deepoffense.classification import ClassificationModel
-from experiments.level_a.deepoffense_config import TEMP_DIRECTORY, SUBMISSION_FOLDER, sinhala_args, hindi_args, SEED, \
+from experiments.sentence_level.deepoffense_config import TEMP_DIRECTORY, sinhala_args, hindi_args, SEED, \
     RESULT_FILE, english_args, cmcs_args
 from deepoffense.util.evaluation import macro_f1, weighted_f1
 from deepoffense.util.label_converter import decode, encode
 from deepoffense.util.print_stat import print_information
 
 if not os.path.exists(TEMP_DIRECTORY): os.makedirs(TEMP_DIRECTORY)
-if not os.path.exists(os.path.join(TEMP_DIRECTORY, SUBMISSION_FOLDER)): os.makedirs(
-    os.path.join(TEMP_DIRECTORY, SUBMISSION_FOLDER))
 
 parser = argparse.ArgumentParser(
     description='''evaluates multiple models  ''')
