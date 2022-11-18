@@ -131,7 +131,7 @@ if arguments.transfer == "true" and arguments.transfer_language == "si":
     if os.path.exists(cmcs_args['output_dir']) and os.path.isdir(cmcs_args['output_dir']):
         shutil.rmtree(cmcs_args['output_dir'])
 
-    ccms = Dataset.to_pandas(load_dataset('NLPC-UOM/Sinhala-English-Code-Mixed-Code-Switched-Dataset', split='train'))
+    ccms = pd.read_csv("data/other/ccms-sentence-level-annotation.csv", sep=",")
     ccms = ccms.rename(columns={'Sentence': 'text', 'Hate_speech': 'labels',})
     ccms = ccms[['text', 'labels']]
     ccms['labels'] = ccms['labels'].replace(['Not offensive', 'Abusive', 'Hate-Inducing'], ['NOT', 'OFF', 'OFF'])
