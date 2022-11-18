@@ -209,9 +209,9 @@ english_args = {
 }
 
 cmcs_args = {
-    'output_dir': 'english_temp/outputs/',
-    "best_model_dir": "english_temp/outputs/best_model",
-    'cache_dir': 'english_temp/cache_dir/',
+    'output_dir': 'cmcs_temp/outputs/',
+    "best_model_dir": "cmcs_temp/outputs/best_model",
+    'cache_dir': 'cmcs_temp/cache_dir/',
 
     'fp16': False,
     'fp16_opt_level': 'O1',
