@@ -135,7 +135,7 @@ if arguments.transfer == "true" and arguments.transfer_language == "si":
     ccms = ccms.rename(columns={'Sentence': 'text', 'Hate_speech': 'labels',})
     ccms = ccms[['text', 'labels']]
     ccms['labels'] = ccms['labels'].replace(['Not offensive', 'Abusive', 'Hate-Inducing'], ['NOT', 'OFF', 'OFF'])
-    ccms['labels'] = ccms(ccms["labels"])
+    ccms['labels'] = encode(ccms["labels"])
 
     ccms_train_df, ccms_test_df = train_test_split(ccms, test_size=0.25, random_state=SEED)
     ccms_test_sentences = ccms_test_df['text'].tolist()
