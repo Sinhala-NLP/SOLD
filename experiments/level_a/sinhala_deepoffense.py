@@ -91,41 +91,40 @@ if arguments.transfer == "true" and arguments.transfer_language == "hi":
     print_information(hindi_test, "predictions", "labels")
     MODEL_NAME = hindi_args['best_model_dir']
 
-# if arguments.transfer == "true" and arguments.transfer_language == "en":
-#     if os.path.exists(english_args['output_dir']) and os.path.isdir(english_args['output_dir']):
-#         shutil.rmtree(english_args['output_dir'])
-#
-#     english_train = pd.read_csv("data/other/olid-training-v1.0.tsv", sep="\t")
-#     hindi_train = hindi_train.rename(columns={'task_1': 'labels'})
-#     hindi_train = hindi_train[['text', 'labels']]
-#     hindi_train['labels'] = hindi_train['labels'].replace(['HOF'], 'OFF')
-#     hindi_train['labels'] = encode(hindi_train["labels"])
-#
-#
-#     hindi_test = pd.read_csv("data/other/hasoc2019_hi_test_gold_2919.tsv", sep="\t")
-#     hindi_test = hindi_test.rename(columns={'subtask_a': 'labels', 'tweet': 'text'})
-#     hindi_test = hindi_test[['text', 'labels']]
-#     hindi_test['labels'] = hindi_test['labels'].replace(['HOF'], 'OFF')
-#     hindi_test['labels'] = encode(hindi_test["labels"])
-#
-#     hindi_test_sentences = hindi_test['text'].tolist()
-#
-#     hindi_train_df, hindi_eval_df = train_test_split(hindi_train, test_size=0.1, random_state=SEED)
-#     model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=hindi_args,
-#                                 use_cuda=torch.cuda.is_available(), cuda_device=cuda_device)
-#
-#     model.train_model(hindi_train_df, eval_df=hindi_eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1,
-#                       accuracy=sklearn.metrics.accuracy_score)
-#
-#     hindi_predictions, hindi_raw_outputs = model.predict(hindi_test_sentences)
-#     hindi_test['predictions'] = hindi_predictions
-#     hindi_test['predictions'] = decode(hindi_test['predictions'])
-#     hindi_test['labels'] = decode(hindi_test['labels'])
-#
-#     # time.sleep(5)
-#     print("Hindi Results")
-#     print_information(hindi_test, "predictions", "labels")
-#     MODEL_NAME = hindi_args['best_model_dir']
+if arguments.transfer == "true" and arguments.transfer_language == "en":
+    if os.path.exists(english_args['output_dir']) and os.path.isdir(english_args['output_dir']):
+        shutil.rmtree(english_args['output_dir'])
+
+    english_train = pd.read_csv("data/other/olid-training-v1.0.tsv", sep="\t")
+    english_train = english_train.rename(columns={'tweet': 'text', 'subtask_a': 'labels'})
+    english_train = english_train[['text', 'labels']]
+    english_train['labels'] = encode(english_train["labels"])
+
+    english_test = pd.read_csv("data/other/testset-levela.tsv", sep="\t")
+    english_labels = pd.read_csv("data/other/labels-levela.csv", names=['id', 'labels'])
+    english_test["labels"] = english_labels["labels"]
+    english_test = english_test.rename(columns={'tweet': 'text'})
+    english_test = english_test[['text', 'labels']]
+    english_test['labels'] = encode(english_test["labels"])
+
+    english_test_sentences = english_test['text'].tolist()
+
+    english_train_df, english_eval_df = train_test_split(english_train, test_size=0.1, random_state=SEED)
+    model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=english_args,
+                                use_cuda=torch.cuda.is_available(), cuda_device=cuda_device)
+
+    model.train_model(english_train_df, eval_df=english_eval_df, macro_f1=macro_f1, weighted_f1=weighted_f1,
+                      accuracy=sklearn.metrics.accuracy_score)
+
+    english_predictions, english_raw_outputs = model.predict(english_test_sentences)
+    english_test['predictions'] = english_predictions
+    english_test['predictions'] = decode(english_test['predictions'])
+    english_test['labels'] = decode(english_test['labels'])
+
+    # time.sleep(5)
+    print("English Results")
+    print_information(english_test, "predictions", "labels")
+    MODEL_NAME = english_args['best_model_dir']
 
 if arguments.transfer == "true" and arguments.transfer_language == "si":
     if os.path.exists(cmcs_args['output_dir']) and os.path.isdir(cmcs_args['output_dir']):
