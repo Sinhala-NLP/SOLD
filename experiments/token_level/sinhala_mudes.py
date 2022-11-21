@@ -4,6 +4,7 @@ import pandas as pd
 import torch
 import numpy as np
 
+
 from sklearn.linear_model import SGDClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
@@ -14,6 +15,9 @@ from datasets import Dataset
 from datasets import load_dataset
 from lime.lime_text import LimeTextExplainer
 from experiments.sentence_level.deepoffense_config import english_args
+from experiments.token_level.mudes_config import sinhala_args
+from sklearn.model_selection import train_test_split
+from mudes.algo.mudes_model import MUDESModel
 
 parser = argparse.ArgumentParser(
     description='''evaluates multiple models  ''')
@@ -65,5 +69,9 @@ for index, row in sold_train.iterrows():
 test_data = pd.DataFrame(
     test_token_df, columns=["sentence_id", "words", "labels"])
 
-
+tags = train_data['labels'].unique().tolist()
+model = MUDESModel(MODEL_TYPE, MODEL_NAME, labels=tags, args=sinhala_args)
+train_df, eval_df = train_test_split(train_data, test_size=0.1, shuffle=False)
+model.train_model(train_df, eval_df=eval_df)
+predictions, raw_outputs = model.predict()
 
