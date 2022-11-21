@@ -55,6 +55,12 @@ Furthermore it contains predicted offensiveness scores from nine classifiers tra
 
 
 ## Experiments
+Clone the repository and install the libraries using the following command (preferably inside a conda environment)
 
+~~~
+pip install -r requirements.txt
+~~~
+
+###
 ## Acknowledgments
 We want to acknowledge Janitha Hapuarachchi, Sachith Suraweera, Chandika Udaya Kumara and Ridmi Randima, the team of volunteer annotators that provided their free time and eﬀorts to help us produce SOLD.
