@@ -62,6 +62,8 @@ for index, row in sold_train.iterrows():
             test_token_df.append(processed_row)
     test_sentence_id = test_sentence_id + 1
 
-train_data = pd.DataFrame(
-    train_token_df, columns=["sentence_id", "words", "labels"])
+test_data = pd.DataFrame(
+    test_token_df, columns=["sentence_id", "words", "labels"])
+
+
 
