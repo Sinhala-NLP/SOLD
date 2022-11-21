@@ -21,7 +21,7 @@ To provide a human explanation of labelling, we collect rationales for the offen
 ![Alt text](images/SOLD_Annotation.png?raw=true "Annotation Process")
 
 ## Data
-Dataset is released in HuggingFace. It can be loaded in to pandas dataframes using the following code. 
+SOLD is released in HuggingFace. It can be loaded in to pandas dataframes using the following code. 
 
 ```python
 from datasets import Dataset
@@ -39,7 +39,7 @@ The dataset contains of the following columns.
 
 ![Alt text](images/SOLD_Examples.png?raw=true "Four examples from the SOLD dataset")
 
-SemiSOLD can be loaded to a pandas dataframe using the following code. 
+SemiSOLD is also released HuggingFace and can be loaded to a pandas dataframe using the following code. 
 
 ```python
 from datasets import Dataset
@@ -47,7 +47,14 @@ from datasets import load_dataset
 
 semi_sold = Dataset.to_pandas(load_dataset('sinhala-nlp/SemiSOLD', split='train'))
 ```
+The dataset contains following columns 
+* **post_id** - Twitter ID
+* **text** - Post text
 
+Furthermore it contains predicted offensiveness scores from nine classifiers trained on SOLD train; xlmr, xlmt, mbert, sinbert, lstm_ft, cnn_ft, lstm_cbow, cnn_cbow, lstm_sl, cnn_sl and svm
+
+
+## Experiments
 
 ## Acknowledgments
 We want to acknowledge Janitha Hapuarachchi, Sachith Suraweera, Chandika Udaya Kumara and Ridmi Randima, the team of volunteer annotators that provided their free time and eﬀorts to help us produce SOLD.
