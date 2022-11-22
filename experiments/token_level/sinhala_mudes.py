@@ -53,6 +53,8 @@ for index, row in sold_train.iterrows():
 train_data = pd.DataFrame(
     train_token_df, columns=["sentence_id", "words", "labels"])
 
+train_data['labels'] = train_data['labels'].replace([0, 1], ['NOT', 'OFF'])
+
 test_sentence_id = 0
 test_token_df = []
 for index, row in sold_test.iterrows():
@@ -70,6 +72,8 @@ for index, row in sold_test.iterrows():
 
 test_data = pd.DataFrame(
     test_token_df, columns=["sentence_id", "words", "labels"])
+
+test_data['labels'] = test_data['labels'].replace([0, 1], ['NOT', 'OFF'])
 
 tags = train_data['labels'].unique().tolist()
 model = MUDESModel(MODEL_TYPE, MODEL_NAME, labels=tags, args=sinhala_args)
