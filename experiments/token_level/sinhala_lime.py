@@ -102,7 +102,7 @@ clf = make_pipeline(StandardScaler(), SGDClassifier(max_iter=1000, tol=1e-3))
 clf.fit(X, Y)
 predictions = clf.predict(np.array(test_data['explanations'].tolist()).reshape(-1, 1))
 
-micro_f1 = f1_score(test_data['labels'].tolist(), predictions, average='micro')
-print(micro_f1)
+test_data["predictions"] = predictions
+print_information(test_data, "labels", "predictions")
 
 
