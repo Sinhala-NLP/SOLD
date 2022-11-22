@@ -17,6 +17,8 @@ from lime.lime_text import LimeTextExplainer
 from experiments.sentence_level.deepoffense_config import english_args
 from experiments.token_level.mudes_config import sinhala_args
 from sklearn.model_selection import train_test_split
+
+from experiments.token_level.print_stat import print_information
 from mudes.algo.mudes_model import MUDESModel
 
 parser = argparse.ArgumentParser(
@@ -53,7 +55,7 @@ train_data = pd.DataFrame(
 
 test_sentence_id = 0
 test_token_df = []
-for index, row in sold_train.iterrows():
+for index, row in sold_test.iterrows():
     tokens = row["tokens"].split()
     labels = json.loads(row["rationales"])
     if len(labels) == 0:
@@ -73,5 +75,9 @@ tags = train_data['labels'].unique().tolist()
 model = MUDESModel(MODEL_TYPE, MODEL_NAME, labels=tags, args=sinhala_args)
 train_df, eval_df = train_test_split(train_data, test_size=0.1, shuffle=False)
 model.train_model(train_df, eval_df=eval_df)
-predictions, raw_outputs = model.predict()
+predictions, raw_outputs = model.predict(sold_test["tokens"].tolist())
+test_data["predictions"] = np.array(predictions).flatten()
+print_information(test_data, "labels", "predictions")
+
+
 
