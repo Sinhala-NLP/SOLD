@@ -13,11 +13,11 @@ sinhala_args = {
 
     'fp16': False,
     'fp16_opt_level': 'O1',
-    'max_seq_length': 200,  # 128
+    'max_seq_length': 150,  # 128
     'train_batch_size': 16,
     'gradient_accumulation_steps': 1,
     'eval_batch_size': 32,
-    'num_train_epochs': 1,
+    'num_train_epochs': 3,
     'weight_decay': 0,
     'learning_rate': 1e-5,
     'adam_epsilon': 1e-8,
