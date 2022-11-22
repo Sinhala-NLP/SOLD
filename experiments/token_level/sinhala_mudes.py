@@ -80,8 +80,10 @@ model = MUDESModel(MODEL_TYPE, MODEL_NAME, labels=tags, args=sinhala_args)
 train_df, eval_df = train_test_split(train_data, test_size=0.1, shuffle=False)
 model.train_model(train_df, eval_df=eval_df)
 predictions, raw_outputs = model.predict(sold_test["tokens"].tolist())
-test_data["predictions"] = np.array(predictions).flatten()
-print_information(test_data, "labels", "predictions")
+for prediction in predictions:
+  for word_prediction in predictions[0]:
+    for key in word_prediction:
+      flat_predictions.append(word_prediction[key])
 
 
 
