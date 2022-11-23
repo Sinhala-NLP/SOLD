@@ -61,6 +61,13 @@ Clone the repository and install the libraries using the following command (pref
 pip install -r requirements.txt
 ~~~
 
+### Sentence-level
+Sentence-level transformer based experiments can be executed using the following command. 
+
+~~~
+python -m experiments.sentence_level.sinhala_deepoffense
+~~~
+
 ###
 ## Acknowledgments
 We want to acknowledge Janitha Hapuarachchi, Sachith Suraweera, Chandika Udaya Kumara and Ridmi Randima, the team of volunteer annotators that provided their free time and eﬀorts to help us produce SOLD.
