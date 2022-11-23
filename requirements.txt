@@ -9,3 +9,4 @@ lime
 seqeval
 wandb
 sentencepiece
+spacy

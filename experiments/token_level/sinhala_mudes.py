@@ -1,27 +1,23 @@
-import argparse
-import json
-import pandas as pd
-import torch
-import numpy as np
-import os
-import shutil
-import ast
+import itertools
 
-from sklearn.linear_model import SGDClassifier
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import make_pipeline
-from sklearn.metrics import f1_score
-from deepoffense.classification import ClassificationModel
-from scipy.special import softmax
+import argparse
+import ast
+import csv
+import json
+import os
+import pandas as pd
+import shutil
+import string
 from datasets import Dataset
 from datasets import load_dataset
-from lime.lime_text import LimeTextExplainer
-from experiments.sentence_level.deepoffense_config import english_args
-from experiments.token_level.mudes_config import sinhala_args, hatex_args
 from sklearn.model_selection import train_test_split
+from spacy.lang.en import English
 
+from experiments.token_level.mudes_config import sinhala_args, hatex_args, tsd_args
 from experiments.token_level.print_stat import print_information
 from mudes.algo.mudes_model import MUDESModel
+
+SPECIAL_CHARACTERS = string.whitespace
 
 parser = argparse.ArgumentParser(
     description='''evaluates multiple models  ''')
@@ -35,6 +31,28 @@ arguments = parser.parse_args()
 MODEL_TYPE = arguments.model_type
 MODEL_NAME = arguments.model_name
 cuda_device = int(arguments.cuda_device)
+
+
+def _contiguous_ranges(span_list):
+    output = []
+    for _, span in itertools.groupby(
+            enumerate(span_list), lambda p: p[1] - p[0]):
+        span = list(span)
+        output.append((span[0][1], span[-1][1]))
+    return output
+
+
+def _fix_spans(spans, text, special_characters=SPECIAL_CHARACTERS):
+    """Applies minor edits to trim spans and remove singletons."""
+    cleaned = []
+    for begin, end in _contiguous_ranges(spans):
+        while text[begin] in special_characters and begin < end:
+            begin += 1
+        while text[end] in special_characters and begin < end:
+            end -= 1
+        if end - begin > 1:
+            cleaned.extend(range(begin, end + 1))
+    return cleaned
 
 
 if arguments.transfer == "true" and arguments.transfer_language == "hatex":
@@ -92,6 +110,41 @@ if arguments.transfer == "true" and arguments.transfer_language == "hatex":
     print_information(hatex_test_data, "labels", "predictions")
     MODEL_NAME = hatex_args['best_model_dir']
 
+if arguments.transfer == "true" and arguments.transfer_language == "tsd":
+    if os.path.exists(tsd_args['output_dir']) and os.path.isdir(tsd_args['output_dir']):
+        shutil.rmtree(tsd_args['output_dir'])
+
+    tsd_data_rows = []
+    with open("data/other/tsd_train.csv") as csvfile:
+        reader = csv.DictReader(csvfile)
+        count = 0
+        for row in reader:
+            fixed = _fix_spans(ast.literal_eval(row['spans']), row['text'])
+            tsd_data_rows.append((fixed, row['text']))
+
+    nlp = English()
+    tokenizer = nlp.Defaults.create_tokenizer(nlp)
+    output = []
+    for n, (spans, text) in enumerate(tsd_data_rows):
+        contiguous_spans = _contiguous_ranges(spans)
+        tokens = tokenizer(text)
+        for token in tokens:
+            is_toxic = False
+            for toxic_span in contiguous_spans:
+                if toxic_span[0] <= token.idx <= toxic_span[1]:
+                    is_toxic = True
+                    break
+            if is_toxic:
+                output.append([n, token.text, "OFF"])
+            else:
+                output.append([n, token.text, "NOT"])
+
+    tsd = pd.DataFrame(output, columns=['sentence_id', 'words', 'labels'])
+    train_df, eval_df = train_test_split(tsd, test_size=0.1, shuffle=False)
+    tags = train_df['labels'].unique().tolist()
+    model = MUDESModel(MODEL_TYPE, MODEL_NAME, labels=tags, args=tsd_args)
+    model.train_model(train_df, eval_df=eval_df)
+    MODEL_NAME = tsd_args['best_model_dir']
 
 sold_train = Dataset.to_pandas(load_dataset('sinhala-nlp/SOLD', split='train'))
 sold_test = Dataset.to_pandas(load_dataset('sinhala-nlp/SOLD', split='test'))
@@ -158,7 +211,3 @@ for final_prediction, sentence in zip(final_predictions, sentences):
 flat_predictions = [j for sub in converted_predictions for j in sub]
 test_data["predictions"] = flat_predictions
 print_information(test_data, "labels", "predictions")
-
-
-
-

@@ -1,18 +1,17 @@
 import argparse
 import json
+import numpy as np
 import pandas as pd
 import torch
-import numpy as np
-
-from sklearn.linear_model import SGDClassifier
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import make_pipeline
-from sklearn.metrics import f1_score
-from deepoffense.classification import ClassificationModel
-from scipy.special import softmax
 from datasets import Dataset
 from datasets import load_dataset
 from lime.lime_text import LimeTextExplainer
+from scipy.special import softmax
+from sklearn.linear_model import SGDClassifier
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
+from deepoffense.classification import ClassificationModel
 from experiments.sentence_level.deepoffense_config import sinhala_args
 from experiments.token_level.print_stat import print_information
 
@@ -46,7 +45,8 @@ sold_test = sold_test.loc[sold_test['label'] == "OFF"]
 
 sold_train = sold_train.head(20)
 
-model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=sinhala_args, use_cuda=torch.cuda.is_available(), cuda_device=cuda_device)
+model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=sinhala_args, use_cuda=torch.cuda.is_available(),
+                            cuda_device=cuda_device)
 explainer = LimeTextExplainer(split_expression=_sinhala_tokenizer, class_names=["NOT", "OFF"])
 
 train_sentence_id = 0
@@ -97,7 +97,6 @@ for index, row in sold_test.iterrows():
 train_data = pd.DataFrame(train_token_df, columns=["sentence_id", "words", "labels", "explanations"])
 test_data = pd.DataFrame(test_token_df, columns=["sentence_id", "words", "labels", "explanations"])
 
-
 X = np.array(train_data['explanations'].tolist()).reshape(-1, 1)
 Y = np.array(train_data['labels'].tolist())
 
@@ -107,5 +106,3 @@ predictions = clf.predict(np.array(test_data['explanations'].tolist()).reshape(-
 
 test_data["predictions"] = predictions
 print_information(test_data, "labels", "predictions")
-
-
