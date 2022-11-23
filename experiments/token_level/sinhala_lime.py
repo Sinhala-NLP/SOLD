@@ -42,7 +42,7 @@ def _predict_probabilities(test_sentences):
 
 
 sold_train = sold_train.loc[sold_train['label'] == "OFF"]
-sold_test = sold_test.loc[sold_train['label'] == "OFF"]
+sold_test = sold_test.loc[sold_test['label'] == "OFF"]
 
 sold_train = sold_train.head(30)
 sold_test = sold_test.head(30)
