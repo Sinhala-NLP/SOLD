@@ -68,6 +68,13 @@ Sentence-level transformer based experiments can be executed using the following
 python -m experiments.sentence_level.sinhala_deepoffense
 ~~~
 
+The command takes the following arguments
+
+~~~
+-- model_type : Type of the transformer model (bert, xlmroberta, roberta etc )
+-- model_name : The exact architecture and trained weights to use. This may be a Hugging Face Transformers compatible pre-trained model, a community model, or the path to a directory containing model files.
+~~~
+
 ###
 ## Acknowledgments
 We want to acknowledge Janitha Hapuarachchi, Sachith Suraweera, Chandika Udaya Kumara and Ridmi Randima, the team of volunteer annotators that provided their free time and eﬀorts to help us produce SOLD.
