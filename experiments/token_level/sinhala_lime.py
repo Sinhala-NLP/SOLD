@@ -94,13 +94,13 @@ for index, row in sold_test.iterrows():
                     test_token_df.append(processed_row)
     test_sentence_id = test_sentence_id + 1
 
-train_data = pd.DataFrame(train_token_df, columns=["sentence_id", "words", "labels", "explanations"])
+
 test_data = pd.DataFrame(test_token_df, columns=["sentence_id", "words", "labels", "explanations"])
 
 X = np.array(train_data['explanations'].tolist()).reshape(-1, 1)
 Y = np.array(train_data['labels'].tolist())
 
-clf = make_pipeline(StandardScaler(), SGDClassifier(max_iter=1000, tol=1e-3))
+clf = make_pipeline(StandardScaler(), SGDClassifier(max_iter=1000, tol=1e-3, class_weight="balanced"))
 clf.fit(X, Y)
 predictions = clf.predict(np.array(test_data['explanations'].tolist()).reshape(-1, 1))
 
