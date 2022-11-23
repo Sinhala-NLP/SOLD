@@ -1,16 +1,14 @@
 import argparse
+import pandas as pd
+import statistics
 from datasets import Dataset
 from datasets import load_dataset
-import statistics
-import pandas as pd
 from sklearn.model_selection import train_test_split
 
 from experiments.sentence_level.offensivenn_config import args
 from offensive_nn.offensive_nn_model import OffensiveNNModel
 from offensive_nn.util.label_converter import encode, decode
 from offensive_nn.util.print_stat import print_information
-
-import numpy as np
 
 parser = argparse.ArgumentParser(
     description='''evaluates multiple models  ''')
@@ -32,12 +30,10 @@ tst_data = sold_test.rename(columns={'label': 'labels'})
 train = trn_data[['text', 'labels']]
 test = tst_data[['text', 'labels']]
 
-
 train['labels'] = encode(train["labels"])
 test['labels'] = encode(test["labels"])
 
 test_sentences = test['text'].tolist()
-
 
 train_df, eval_df = train_test_split(train, test_size=0.1, random_state=args["manual_seed"])
 if arguments.augment == "true":
@@ -66,8 +62,8 @@ if arguments.augment == "true":
     train_df = train_df.sample(frac=1, random_state=args["manual_seed"]).reset_index(drop=True)
 
 model = OffensiveNNModel(model_type_or_path=arguments.algorithm, embedding_model_name_or_path=arguments.model_name,
-                             train_df=train_df,
-                             args=args, eval_df=eval_df)
+                         train_df=train_df,
+                         args=args, eval_df=eval_df)
 model.train_model()
 print("Finished Training")
 model = OffensiveNNModel(model_type_or_path=args["best_model_dir"])
