@@ -71,8 +71,13 @@ python -m experiments.sentence_level.sinhala_deepoffense
 The command takes the following arguments
 
 ~~~
--- model_type : Type of the transformer model (bert, xlmroberta, roberta etc )
--- model_name : The exact architecture and trained weights to use. This may be a Hugging Face Transformers compatible pre-trained model, a community model, or the path to a directory containing model files.
+--model_type : Type of the transformer model (bert, xlmroberta, roberta etc )
+--model_name : The exact architecture and trained weights to use. This may be a Hugging Face Transformers compatible pre-trained model, a community model, or the path to a directory containing model files.
+--transfer : Whether to perform transfer learning or not (true or false)
+--transfer_language : The initial language if transfer learning is performed (hi, en or si)
+    * hi - Perform transfer learning from HASOC 2019 Hindi dataset. 
+    * en - Perform transfer learning from Offenseval English dataset.
+    * si - Perform transfer learning from CCMS Sinhala dataset.
 ~~~
 
 ###
