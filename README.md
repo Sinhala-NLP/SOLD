@@ -77,7 +77,25 @@ The command takes the following arguments;
 --transfer_language : The initial language if transfer learning is performed (hi, en or si).
     * hi - Perform transfer learning from HASOC 2019 Hindi dataset (Modha et al., 2019).
     * en - Perform transfer learning from Offenseval English dataset (Zampieri et al., 2019).
-    * si - Perform transfer learning from CCMS Sinhala dataset (Rathnayake et al., 2019).
+    * si - Perform transfer learning from CCMS Sinhala dataset (Rathnayake et al., 2021).
+--augment : Perform semi supervised data augmentation.
+--std : Standard deviation of the models to cut down data augmentation.
+--augment_type: The type of the data augmentation.
+    * off - Augment only the offensive instances.
+    * normal - Augment both offensive and non-offensive instances.
+~~~
+
+Sentence-level CNN and LSTM based experiments can be executed using the following command. 
+
+~~~
+python -m experiments.sentence_level.sinhala_offensive_nn
+~~~
+
+The command takes the following arguments;
+
+~~~
+--model_type : Type of the architecture (cnn2D, lstm).
+--model_name : The exact word embeddings to use. This may be a gensim model, or the path to a word embeddinng files.
 --augment : Perform semi supervised data augmentation.
 --std : Standard deviation of the models to cut down data augmentation.
 --augment_type: The type of the data augmentation.
@@ -86,6 +104,23 @@ The command takes the following arguments;
 ~~~
 
 ### Token-level
+Token-level transformer based experiments can be executed using the following command. 
+
+~~~
+python -m experiments.sentence_level.sinhala_mudes
+~~~
+
+The command takes the following arguments;
+
+~~~
+--model_type : Type of the transformer model (bert, xlmroberta, roberta etc ).
+--model_name : The exact architecture and trained weights to use. This may be a Hugging Face Transformers compatible pre-trained model, a community model, or the path to a directory containing model files.
+--transfer : Whether to perform transfer learning or not (true or false).
+--transfer_language : The initial language if transfer learning is performed (hatex or tsd).
+    * hatex - Perform transfer learning from HateXplain dataset (Mathew et al., 2021).
+    * tsd - Perform transfer learning from TSD dataset (Pavlopoulos  et al., 2021).
+~~~
+
 
 ## Acknowledgments
 We want to acknowledge Janitha Hapuarachchi, Sachith Suraweera, Chandika Udaya Kumara and Ridmi Randima, the team of volunteer annotators that provided their free time and eﬀorts to help us produce SOLD.
