@@ -76,7 +76,7 @@ The command takes the following arguments;
 --transfer : Whether to perform transfer learning or not (true or false).
 --transfer_language : The initial language if transfer learning is performed (hi, en or si).
     * hi - Perform transfer learning from HASOC 2019 Hindi dataset. 
-    * en - Perform transfer learning from Offenseval English dataset.
+    * en - Perform transfer learning from Offenseval English dataset [(Zampieri et al., 2019)](https://aclanthology.org/N19-1144/).
     * si - Perform transfer learning from CCMS Sinhala dataset.
 --augment : Perform semi supervised data augmentation.
 --std : Standard deviation of the models to cut down data augmentation.
@@ -85,6 +85,7 @@ The command takes the following arguments;
     * normal - Augment both offensive and non-offensive instances.
 ~~~
 
-###
+### Sentence-level
+
 ## Acknowledgments
 We want to acknowledge Janitha Hapuarachchi, Sachith Suraweera, Chandika Udaya Kumara and Ridmi Randima, the team of volunteer annotators that provided their free time and eﬀorts to help us produce SOLD.
