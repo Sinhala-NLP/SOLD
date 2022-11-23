@@ -1,21 +1,20 @@
 import argparse
-import numpy as np
-import pandas as pd
-import statistics
 import os
+import pandas as pd
 import shutil
 import sklearn
+import statistics
 import torch
 from datasets import Dataset
 from datasets import load_dataset
 from sklearn.model_selection import train_test_split
 
 from deepoffense.classification import ClassificationModel
-from experiments.sentence_level.deepoffense_config import TEMP_DIRECTORY, sinhala_args, hindi_args, SEED, \
-    RESULT_FILE, english_args, cmcs_args
 from deepoffense.util.evaluation import macro_f1, weighted_f1
 from deepoffense.util.label_converter import decode, encode
 from deepoffense.util.print_stat import print_information
+from experiments.sentence_level.deepoffense_config import TEMP_DIRECTORY, sinhala_args, hindi_args, SEED, \
+    RESULT_FILE, english_args, cmcs_args
 
 if not os.path.exists(TEMP_DIRECTORY): os.makedirs(TEMP_DIRECTORY)
 
@@ -31,7 +30,6 @@ parser.add_argument('--transfer', required=False, help='transfer learning', defa
 parser.add_argument('--transfer_language', required=False, help='transfer learning', default="hi")
 arguments = parser.parse_args()
 
-
 sold_train = Dataset.to_pandas(load_dataset('sinhala-nlp/SOLD', split='train'))
 sold_test = Dataset.to_pandas(load_dataset('sinhala-nlp/SOLD', split='test'))
 
@@ -42,12 +40,10 @@ tst_data = sold_test.rename(columns={'label': 'labels'})
 train = trn_data[['text', 'labels']]
 test = tst_data[['text', 'labels']]
 
-
 train['labels'] = encode(train["labels"])
 test['labels'] = encode(test["labels"])
 
 test_sentences = test['text'].tolist()
-
 
 MODEL_TYPE = arguments.model_type
 MODEL_NAME = arguments.model_name
@@ -62,7 +58,6 @@ if arguments.transfer == "true" and arguments.transfer_language == "hi":
     hindi_train = hindi_train[['text', 'labels']]
     hindi_train['labels'] = hindi_train['labels'].replace(['HOF'], 'OFF')
     hindi_train['labels'] = encode(hindi_train["labels"])
-
 
     hindi_test = pd.read_csv("data/other/hasoc2019_hi_test_gold_2919.tsv", sep="\t")
     hindi_test = hindi_test.rename(columns={'subtask_a': 'labels', 'tweet': 'text'})
@@ -129,7 +124,7 @@ if arguments.transfer == "true" and arguments.transfer_language == "si":
         shutil.rmtree(cmcs_args['output_dir'])
 
     ccms = pd.read_csv("data/other/ccms-sentence-level-annotation.csv", sep=",")
-    ccms = ccms.rename(columns={'Sentence': 'text', 'Hate_speech': 'labels',})
+    ccms = ccms.rename(columns={'Sentence': 'text', 'Hate_speech': 'labels', })
     ccms = ccms[['text', 'labels']]
     ccms['labels'] = ccms['labels'].replace(['Not offensive', 'Abusive', 'Hate-Inducing'], ['NOT', 'OFF', 'OFF'])
     ccms['labels'] = encode(ccms["labels"])
@@ -153,7 +148,6 @@ if arguments.transfer == "true" and arguments.transfer_language == "si":
     print("CCMS Results")
     print_information(ccms_test_df, "predictions", "labels")
     MODEL_NAME = cmcs_args['best_model_dir']
-
 
 if sinhala_args["evaluate_during_training"]:
     if os.path.exists(sinhala_args['output_dir']) and os.path.isdir(sinhala_args['output_dir']):
