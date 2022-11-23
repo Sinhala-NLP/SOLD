@@ -26,11 +26,20 @@ parser = argparse.ArgumentParser(
 parser.add_argument('--model_name', required=False, help='model name', default="xlm-roberta-large")
 parser.add_argument('--model_type', required=False, help='model type', default="xlmroberta")
 parser.add_argument('--cuda_device', required=False, help='cuda device', default=0)
+parser.add_argument('--transfer', required=False, help='transfer learning', default="false")
+parser.add_argument('--transfer_language', required=False, help='transfer learning', default="hi")
 arguments = parser.parse_args()
 
 MODEL_TYPE = arguments.model_type
 MODEL_NAME = arguments.model_name
 cuda_device = int(arguments.cuda_device)
+
+
+if arguments.transfer == "true" and arguments.transfer_language == "hatex":
+    if os.path.exists(hindi_args['output_dir']) and os.path.isdir(hindi_args['output_dir']):
+        shutil.rmtree(hindi_args['output_dir'])
+
+
 
 sold_train = Dataset.to_pandas(load_dataset('sinhala-nlp/SOLD', split='train'))
 sold_test = Dataset.to_pandas(load_dataset('sinhala-nlp/SOLD', split='test'))
