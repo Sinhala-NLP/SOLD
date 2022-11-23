@@ -13,7 +13,7 @@ from scipy.special import softmax
 from datasets import Dataset
 from datasets import load_dataset
 from lime.lime_text import LimeTextExplainer
-from experiments.sentence_level.deepoffense_config import english_args
+from experiments.sentence_level.deepoffense_config import sinhala_args
 from experiments.token_level.print_stat import print_information
 
 parser = argparse.ArgumentParser(
@@ -42,12 +42,13 @@ def _predict_probabilities(test_sentences):
 
 
 sold_train = sold_train.loc[sold_train['label'] == "OFF"]
+sold_test = sold_test.loc[sold_train['label'] == "OFF"]
 
-sold_train = sold_train.head(20)
-sold_test = sold_test.head(20)
+sold_train = sold_train.head(30)
+sold_test = sold_test.head(30)
 
 
-model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=english_args, use_cuda=torch.cuda.is_available(), cuda_device=cuda_device)
+model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=sinhala_args, use_cuda=torch.cuda.is_available(), cuda_device=cuda_device)
 explainer = LimeTextExplainer(split_expression=_sinhala_tokenizer, class_names=["NOT", "OFF"])
 
 train_sentence_id = 0
