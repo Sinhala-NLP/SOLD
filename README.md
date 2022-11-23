@@ -68,16 +68,21 @@ Sentence-level transformer based experiments can be executed using the following
 python -m experiments.sentence_level.sinhala_deepoffense
 ~~~
 
-The command takes the following arguments
+The command takes the following arguments;
 
 ~~~
---model_type : Type of the transformer model (bert, xlmroberta, roberta etc )
+--model_type : Type of the transformer model (bert, xlmroberta, roberta etc ).
 --model_name : The exact architecture and trained weights to use. This may be a Hugging Face Transformers compatible pre-trained model, a community model, or the path to a directory containing model files.
---transfer : Whether to perform transfer learning or not (true or false)
---transfer_language : The initial language if transfer learning is performed (hi, en or si)
+--transfer : Whether to perform transfer learning or not (true or false).
+--transfer_language : The initial language if transfer learning is performed (hi, en or si).
     * hi - Perform transfer learning from HASOC 2019 Hindi dataset. 
     * en - Perform transfer learning from Offenseval English dataset.
     * si - Perform transfer learning from CCMS Sinhala dataset.
+--augment : Perform semi supervised data augmentation.
+--std : Standard deviation of the models to cut down data augmentation.
+--augment_type: The type of the data augmentation.
+    * off - Augment only the offensive instances.
+    * normal - Augment both offensive and non-offensive instances.
 ~~~
 
 ###
