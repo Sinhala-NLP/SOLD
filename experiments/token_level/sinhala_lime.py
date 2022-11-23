@@ -45,7 +45,7 @@ sold_train = sold_train.loc[sold_train['label'] == "OFF"]
 sold_test = sold_test.loc[sold_test['label'] == "OFF"]
 
 sold_train = sold_train.head(20)
-sold_test = sold_test.head(20)
+sold_test = sold_test.head(40)
 
 
 model = ClassificationModel(MODEL_TYPE, MODEL_NAME, args=sinhala_args, use_cuda=torch.cuda.is_available(), cuda_device=cuda_device)
