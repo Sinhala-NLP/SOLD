@@ -123,7 +123,7 @@ if arguments.transfer == "true" and arguments.transfer_language == "tsd":
             tsd_data_rows.append((fixed, row['text']))
 
     nlp = English()
-    tokenizer = nlp.Defaults.create_tokenizer(nlp)
+    tokenizer = nlp.tokenizer
     output = []
     for n, (spans, text) in enumerate(tsd_data_rows):
         contiguous_spans = _contiguous_ranges(spans)
