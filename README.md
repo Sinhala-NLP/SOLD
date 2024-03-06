@@ -142,13 +142,7 @@ We want to acknowledge Janitha Hapuarachchi, Sachith Suraweera, Chandika Udaya K
 If you are using the dataset or the models, please cite the following paper
 ~~~
 ﻿@article{Ranasinghe2024,
-author={Ranasinghe, Tharindu
-and Anuradha, Isuri
-and Premasiri, Damith
-and Silva, Kanishka
-and Hettiarachchi, Hansi
-and Uyangodage, Lasitha
-and Zampieri, Marcos},
+author={Ranasinghe, Tharindu and Anuradha, Isuri and Premasiri, Damith and Silva, Kanishka and Hettiarachchi, Hansi and Uyangodage, Lasitha and Zampieri, Marcos},
 title={SOLD: Sinhala offensive language dataset},
 journal={Language Resources and Evaluation},
 year={2024},
