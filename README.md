@@ -139,12 +139,25 @@ The command takes the following arguments;
 We want to acknowledge Janitha Hapuarachchi, Sachith Suraweera, Chandika Udaya Kumara and Ridmi Randima, the team of volunteer annotators that provided their free time and eﬀorts to help us produce SOLD.
 
 ## Citation
-If you are using the dataset or the models please cite the following paper
+If you are using the dataset or the models, please cite the following paper
 ~~~
-@article{ranasinghe2022sold,
-  title={SOLD: Sinhala Offensive Language Dataset},
-  author={Ranasinghe, Tharindu and Anuradha, Isuri and Premasiri, Damith and Silva, Kanishka and Hettiarachchi, Hansi and Uyangodage, Lasitha and Zampieri, Marcos},
-  journal={arXiv preprint arXiv:2212.00851},
-  year={2022}
+﻿@article{Ranasinghe2024,
+author={Ranasinghe, Tharindu
+and Anuradha, Isuri
+and Premasiri, Damith
+and Silva, Kanishka
+and Hettiarachchi, Hansi
+and Uyangodage, Lasitha
+and Zampieri, Marcos},
+title={SOLD: Sinhala offensive language dataset},
+journal={Language Resources and Evaluation},
+year={2024},
+month={Mar},
+day={06},
+issn={1574-0218},
+doi={10.1007/s10579-024-09723-1},
+url={https://doi.org/10.1007/s10579-024-09723-1}
 }
+
+
 ~~~
